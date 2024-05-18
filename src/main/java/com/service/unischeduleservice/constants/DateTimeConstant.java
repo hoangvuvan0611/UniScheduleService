@@ -1,4 +1,4 @@
-package com.example.api_flutter_app_main_second_v1.constants;
+package com.service.unischeduleservice.constants;
 
 public class DateTimeConstant {
     public static final String DATE_FORMAT = "dd/MM/yyyy";

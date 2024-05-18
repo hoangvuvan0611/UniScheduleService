@@ -1,9 +1,9 @@
-package com.example.api_flutter_app_main_second_v1.sevices;
+package com.service.unischeduleservice.sevices;
 
-import com.example.api_flutter_app_main_second_v1.dtos.UserDTO;
-import com.example.api_flutter_app_main_second_v1.requests.SetupDataRequest;
 
-import java.io.IOException;
+import com.service.unischeduleservice.dtos.UserDTO;
+import com.service.unischeduleservice.requests.SetupDataRequest;
+
 import java.util.List;
 
 public interface ScraperService {

@@ -1,8 +1,8 @@
-package com.example.api_flutter_app_main_second_v1.controllers;
+package com.service.unischeduleservice.controllers;
 
-import com.example.api_flutter_app_main_second_v1.dtos.UserDTO;
-import com.example.api_flutter_app_main_second_v1.requests.SetupDataRequest;
-import com.example.api_flutter_app_main_second_v1.sevices.ScraperService;
+import com.service.unischeduleservice.dtos.UserDTO;
+import com.service.unischeduleservice.requests.SetupDataRequest;
+import com.service.unischeduleservice.sevices.ScraperService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 

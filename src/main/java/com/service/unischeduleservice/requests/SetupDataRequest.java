@@ -1,4 +1,4 @@
-package com.example.api_flutter_app_main_second_v1.requests;
+package com.service.unischeduleservice.requests;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;

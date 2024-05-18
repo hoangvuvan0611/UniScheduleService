@@ -1,7 +1,8 @@
-package com.example.api_flutter_app_main_second_v1.sevices;
+package com.service.unischeduleservice.sevices;
 
-import com.example.api_flutter_app_main_second_v1.dtos.NewsBothDTO;
+
+import com.service.unischeduleservice.dtos.NewsBothDTO;
 
 public interface NewsService {
-    public NewsBothDTO scrappingData(String department);
+    public NewsBothDTO scrappingData();
 }

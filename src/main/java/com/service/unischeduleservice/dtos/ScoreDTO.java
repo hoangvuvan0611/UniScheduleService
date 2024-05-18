@@ -1,4 +1,4 @@
-package com.example.api_flutter_app_main_second_v1.dtos;
+package com.service.unischeduleservice.dtos;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.*;

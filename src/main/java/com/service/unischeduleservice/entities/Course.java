@@ -1,4 +1,4 @@
-package com.example.api_flutter_app_main_second_v1.entities;
+package com.service.unischeduleservice.entities;
 
 import lombok.*;
 

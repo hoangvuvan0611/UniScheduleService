@@ -1,7 +1,7 @@
-package com.example.api_flutter_app_main_second_v1.sevices;
+package com.service.unischeduleservice.sevices;
 
-import com.example.api_flutter_app_main_second_v1.dtos.NewsBothDTO;
-import com.example.api_flutter_app_main_second_v1.dtos.NewsDTO;
+import com.service.unischeduleservice.dtos.NewsBothDTO;
+import com.service.unischeduleservice.dtos.NewsDTO;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -26,7 +26,7 @@ public class NewsServiceImpl implements NewsService {
     private String universityNewsLinkAll;
 
     @Override
-    public NewsBothDTO scrappingData(String userCode) {
+    public NewsBothDTO scrappingData() {
         return NewsBothDTO.builder()
                 .universityNewsList(getUniversityNewsList())
                 .universityNewsLinkAll(universityNewsLinkAll)

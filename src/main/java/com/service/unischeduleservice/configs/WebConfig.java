@@ -1,4 +1,4 @@
-package com.example.api_flutter_app_main_second_v1.configs;
+package com.service.unischeduleservice.configs;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

@@ -1,7 +1,7 @@
-package com.example.api_flutter_app_main_second_v1.controllers;
+package com.service.unischeduleservice.controllers;
 
-import com.example.api_flutter_app_main_second_v1.dtos.NewsBothDTO;
-import com.example.api_flutter_app_main_second_v1.sevices.NewsService;
+import com.service.unischeduleservice.dtos.NewsBothDTO;
+import com.service.unischeduleservice.sevices.NewsService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -17,9 +17,9 @@ public class NewsController {
         this.newsService = newsService;
     }
 
-    @GetMapping("/department={department}")
-    public ResponseEntity<NewsBothDTO> setUpData(@PathVariable String department) {
-        NewsBothDTO newsBothDTO =  newsService.scrappingData(department);
+    @GetMapping("/gets")
+    public ResponseEntity<NewsBothDTO> setUpData() {
+        NewsBothDTO newsBothDTO =  newsService.scrappingData();
         if(newsBothDTO == null)
             return ResponseEntity.notFound().build();
 
