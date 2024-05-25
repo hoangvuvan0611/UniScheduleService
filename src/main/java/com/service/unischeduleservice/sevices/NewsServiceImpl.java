@@ -55,10 +55,12 @@ public class NewsServiceImpl implements NewsService {
 
         for (Element elementTd: elementsTable) {
             if(elementTd.hasClass("TextTitle")) {
-                String title = elementTd.child(0)==null?"":elementTd.child(0).text().trim();
-                String date = elementTd.getElementsByClass("NgayTitle")==null
-                    ?"":elementTd.getElementsByClass("NgayTitle").text();
-                String url = elementTd.attr("href")==null?"":elementTd.attr("href");
+                elementTd.child(0);
+                String title = elementTd.child(0).text().trim();
+                elementTd.getElementsByClass("NgayTitle");
+                String date = elementTd.getElementsByClass("NgayTitle").text();
+                elementTd.attr("href");
+                String url = elementTd.attr("href");
                 NewsDTO newsDTO = NewsDTO.builder()
                     .title(title)
                     .url("https://daotao.vnua.edu.vn/" + url)

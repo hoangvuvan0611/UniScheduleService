@@ -226,16 +226,13 @@ public class ScraperServiceImpl implements ScraperService{
         }
 
         Elements elements = document.getElementsByClass("row-diemTK");
+        String totalCredit = elements.get(elements.size() - 2).text();
+        totalCredit = totalCredit.substring(totalCredit.indexOf(":") + 1).trim();
+        String gpa = elements.get(elements.size() - 4).text();
+        gpa = gpa.substring(gpa.indexOf(":") + 1).trim();
 
-        if(elements.size() > 2) {
-            String totalCredit = elements.get(elements.size() - 2).text();
-            totalCredit = totalCredit.substring(totalCredit.indexOf(":") + 1).trim();
-            String gpa = elements.get(elements.size() - 4).text();
-            gpa = gpa.substring(gpa.indexOf(":") + 1).trim();
-
-            userDTO.setTotalCredit(totalCredit);
-            userDTO.setGpa(gpa);
-        }
+        userDTO.setTotalCredit(totalCredit);
+        userDTO.setGpa(gpa);
 
         userDTO.setCourseList(getDataCourse(userDTO, true, semester));
         userDTO.setSemesterList(getDataSemesterScore(userDTO));
@@ -386,9 +383,7 @@ public class ScraperServiceImpl implements ScraperService{
         } catch (IOException e) {
             throw new RuntimeException("Schedule unService!");
         }
-        if(document.getElementsByClass("view-table").first() == null ) {
-            return semesterList;
-        }
+
         Elements elementTable = document.getElementsByClass("view-table").first().child(0).children();
 
         for(int i=0; i<elementTable.size(); i++){
