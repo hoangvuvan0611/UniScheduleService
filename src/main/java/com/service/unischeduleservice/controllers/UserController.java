@@ -1,8 +1,9 @@
 package com.service.unischeduleservice.controllers;
 
 import com.service.unischeduleservice.dtos.UserDTO;
-import com.service.unischeduleservice.requests.SetupDataRequest;
+import com.service.unischeduleservice.apis.requests.UserDataRequest;
 import com.service.unischeduleservice.sevices.ScraperService;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -19,7 +20,7 @@ public class UserController {
     }
 
     @PostMapping("/setupData")
-    public ResponseEntity<UserDTO> setUpData(@RequestBody SetupDataRequest request) {
+    public ResponseEntity<UserDTO> setUpData(@Valid @RequestBody UserDataRequest request) {
         UserDTO userDTO =  scraperService.scrappingData(request);
         if(userDTO == null)
             return ResponseEntity.notFound().build();

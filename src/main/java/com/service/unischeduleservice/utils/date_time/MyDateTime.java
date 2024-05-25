@@ -1,4 +1,4 @@
-package com.service.unischeduleservice.date_time;
+package com.service.unischeduleservice.utils.date_time;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;

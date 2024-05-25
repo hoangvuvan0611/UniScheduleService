@@ -1,9 +1,9 @@
 package com.service.unischeduleservice.sevices;
 
 import com.service.unischeduleservice.constants.DateTimeConstant;
-import com.service.unischeduleservice.date_time.MyDateTime;
+import com.service.unischeduleservice.utils.date_time.MyDateTime;
 import com.service.unischeduleservice.dtos.*;
-import com.service.unischeduleservice.requests.SetupDataRequest;
+import com.service.unischeduleservice.apis.requests.UserDataRequest;
 import lombok.SneakyThrows;
 import org.jsoup.Connection;
 import org.jsoup.Jsoup;
@@ -60,7 +60,7 @@ public class ScraperServiceImpl implements ScraperService{
     private String thirteenthPeriod;
 
     @Override
-    public UserDTO scrappingData(SetupDataRequest request){
+    public UserDTO scrappingData(UserDataRequest request){
         return scrappingUserTuition(request);
     }
 
@@ -85,11 +85,11 @@ public class ScraperServiceImpl implements ScraperService{
         return semesterList;
     }
 
-    private UserDTO scrappingUserTuition(SetupDataRequest request){
+    private UserDTO scrappingUserTuition(UserDataRequest request){
         return getDataUser(request);
     }
 
-    private UserDTO getDataUser(SetupDataRequest request){
+    private UserDTO getDataUser(UserDataRequest request){
         // SchedulePage
         Document document;
         try {
