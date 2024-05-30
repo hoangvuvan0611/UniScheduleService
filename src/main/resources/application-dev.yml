@@ -2,6 +2,26 @@ spring:
   config:
     activate:
       on-profile: dev
+  datasource:
+    url: jdbc:mysql://localhost:3306/unischedule
+    username: root
+    password: Hoanglam06112003@
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    show-sql: true
+    hibernate:
+      ddl-auto: create-drop
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect
+    database-platform: org.hibernate.dialect.MySQLDialect
+    database: mysql
+  # Enable spring data repos
+  data:
+    jpa:
+      repositories:
+        enabled: true
+
 
 url:
   tuition: https://daotao.vnua.edu.vn/Default.aspx?page=xemhocphi&id=
@@ -13,3 +33,6 @@ url:
   all_semester: https://daotao.vnua.edu.vn/default.aspx?page=thoikhoabieu&load=all&sta=1&lang=y
   faculty_of_fisheries: https://khoathuysan.vnua.edu.vn
   faculty_of_it: https://fita.vnua.edu.vn/tin-tuc
+logging:
+  level:
+    root: info
