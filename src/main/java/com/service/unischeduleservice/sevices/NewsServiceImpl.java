@@ -2,6 +2,9 @@ package com.service.unischeduleservice.sevices;
 
 import com.service.unischeduleservice.dtos.NewsBothDTO;
 import com.service.unischeduleservice.dtos.NewsDTO;
+import com.service.unischeduleservice.dtos.NewsFacultyDTO;
+import com.service.unischeduleservice.enums.FacultyEnum;
+import lombok.extern.slf4j.Slf4j;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -14,6 +17,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Service
+@Slf4j
 public class NewsServiceImpl implements NewsService {
 
     @Value("${url.home}")
@@ -21,6 +25,9 @@ public class NewsServiceImpl implements NewsService {
 
     @Value("${url.faculty_of_fisheries}")
     private String facultyOfFisheries;
+
+    @Value("${url.faculty_of_it}")
+    private String facultyOfIt;
 
     @Value("${url.university_news_link_all}")
     private String universityNewsLinkAll;
@@ -31,6 +38,30 @@ public class NewsServiceImpl implements NewsService {
                 .universityNewsList(getUniversityNewsList())
                 .universityNewsLinkAll(universityNewsLinkAll)
                 .build();
+    }
+
+    @Override
+    public NewsFacultyDTO getFacultyNews(String facultyName) {
+        NewsFacultyDTO facultyDTO = new NewsFacultyDTO();
+        log.info("new");
+        FacultyEnum facultyEnum = FacultyEnum.fromString(facultyName);
+        log.info("new1");
+        Document document;
+        return switch (facultyEnum) {
+            case IT -> {
+                document = getDocument(facultyOfIt);
+                facultyDTO.setDepartmentNewsList(getNewsFacultyOfIt(document));
+                yield facultyDTO;
+            }
+            case FISHERIES -> {
+                document = getDocument(facultyOfFisheries);
+                facultyDTO.setDepartmentNewsList(getNewsFacultyOfFisheries(document));
+                yield facultyDTO;
+            }
+            default -> {
+                yield null;
+            }
+        };
     }
 
     private Document getDocument(String url) {
@@ -73,12 +104,13 @@ public class NewsServiceImpl implements NewsService {
         return newsDTOList;
     }
 
-    private List<NewsDTO> getNewsFacultyOfFisheries() {
-        Document document = getDocument(facultyOfFisheries);
+    private List<NewsDTO> getNewsFacultyOfFisheries(Document document) {
         if(document.getElementById("col-1943509528") == null){
-            System.out.println(document.getElementById("col-1943509528"));
+//            log.info(document.getElementById("col-1943509528").text());
             return null;
         }
+
+        System.out.println("dfdf");
 
         List<NewsDTO> newsDTOList = new ArrayList<>();
         Elements elements = document.getElementsByClass("mh-list-post").first().getAllElements();
@@ -89,6 +121,25 @@ public class NewsServiceImpl implements NewsService {
             String url = element.attr("href");
             System.out.println(url);
         }
+        return newsDTOList;
+    }
+
+    private List<NewsDTO> getNewsFacultyOfIt(Document document) {
+        if(document.getElementById("col-1943509528") == null){
+            log.info("hoang");
+            log.info(document.getElementById("col-1943509528").toString());
+            return null;
+        }
+
+        List<NewsDTO> newsDTOList = new ArrayList<>();
+//        Elements elements = document.getElementsByClass("mh-list-post").first().getAllElements();
+//
+//        System.out.println(elements);
+//        for(Element element: elements) {
+//            System.out.println(element.children());
+//            String url = element.attr("href");
+//            System.out.println(url);
+//        }
         return newsDTOList;
     }
 }

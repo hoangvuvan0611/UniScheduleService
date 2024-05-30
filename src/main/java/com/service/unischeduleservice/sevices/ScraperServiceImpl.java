@@ -217,7 +217,6 @@ public class ScraperServiceImpl implements ScraperService{
             }
         }
 
-
         /* Score page, get score data of student */
         try {
             document = Jsoup.connect(scoreSemesterUrl + userDTO.getUserId()).get();

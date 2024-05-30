@@ -1,8 +1,9 @@
 package com.service.unischeduleservice.controllers;
 
 import com.service.unischeduleservice.dtos.NewsBothDTO;
+import com.service.unischeduleservice.dtos.NewsFacultyDTO;
 import com.service.unischeduleservice.sevices.NewsService;
-import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -28,7 +29,8 @@ public class NewsController {
     }
 
     @GetMapping("/faculty={facultyName}")
-    public ResponseEntity<?> getFacultyNews(@PathVariable @Min(value = 1, message = "facultyName must be not blank") int facultyName) {
-        return ResponseEntity.ok("oke");
+    public ResponseEntity<?> getFacultyNews(@PathVariable @NotBlank(message = "facultyName must be not blank") String facultyName) {
+        NewsFacultyDTO newsFacultyDTO = newsService.getFacultyNews(facultyName);
+        return ResponseEntity.ok(newsFacultyDTO);
     }
 }
