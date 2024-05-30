@@ -8,7 +8,7 @@ public enum FacultyEnum {
     IT("Công nghệ thông tin"),
     FISHERIES("Thủy sản");
 
-    private String faculty;
+    private final String faculty;
     FacultyEnum(String faculty) {
         this.faculty = faculty;
     }

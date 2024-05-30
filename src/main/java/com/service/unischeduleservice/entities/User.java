@@ -2,12 +2,12 @@ package com.service.unischeduleservice.entities;
 
 import lombok.*;
 
-@AllArgsConstructor
-@NoArgsConstructor
 @Builder
 @Getter
 @Setter
 @ToString
+@AllArgsConstructor
+@NoArgsConstructor
 public class User {
     private String userId;
     private String userName;
