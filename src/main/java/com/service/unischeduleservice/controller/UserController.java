@@ -1,5 +1,6 @@
 package com.service.unischeduleservice.controller;
 
+import com.service.unischeduleservice.configuration.Translator;
 import com.service.unischeduleservice.dto.requests.user.UserRequestDTO;
 import com.service.unischeduleservice.dto.resposes.ResponseData;
 import com.service.unischeduleservice.dto.resposes.ResponseError;
@@ -10,6 +11,7 @@ import com.service.unischeduleservice.sevice.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -46,10 +48,38 @@ public class UserController {
         log.info("Request subscribe user, userId:{} , month: {}", request.getUserId(), request.getMonthsCount());
         try {
             String result = userService.subscribeUser(request);
-            return new ResponseData<>(HttpStatus.CREATED.value(), "Subscribe user success!", result);
-        } catch (Exception e) {
-            log.info("ErrorMessage={}", e.getMessage(), e.getCause());
-            return new ResponseError(HttpStatus.BAD_REQUEST.value(), "Subscribe user fail!");
+            return new ResponseData<>(HttpStatus.CREATED.value(), Translator.toLocale("user.sub.success"), result);
+        } catch (Exception ex) {
+            log.error("ErrorMessage={}", ex.getMessage(), ex.getCause());
+            return new ResponseError(HttpStatus.BAD_REQUEST.value(), Translator.toLocale("user.sub.fail"));
+        }
+    }
+
+    @Operation(method = "PUT", summary = "Update user", description = "Send a request via this API to update user")
+    @PutMapping("/{userId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public ResponseData<?> updateUser(@PathVariable @NotBlank(message = "userId must be not blank!") String userId, @RequestBody UserRequestDTO request) {
+        log.info("Request update userId={}", request.getUserId());
+        try {
+            userService.updateUser(request);
+            return new ResponseData<>(HttpStatus.NO_CONTENT.value(), Translator.toLocale("user.upd.success"));
+        }catch (Exception ex) {
+            log.error("ErrorMessage={}", ex.getMessage(), ex.getCause());
+            return new ResponseError(HttpStatus.BAD_REQUEST.value(), Translator.toLocale("user.upd.fail"));
+        }
+    }
+
+    @Operation(method = "DELETE", summary = "Delete user permanently", description = "Send a request via this API to delete user permanently")
+    @DeleteMapping("/{userId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public ResponseData<?> deleteUser(@PathVariable @NotBlank(message = "userId must be not blank!") String userId) {
+        log.info("Delete userId={}", userId);
+        try {
+            userService.deleteUser(userId);
+            return new ResponseData<>(HttpStatus.NO_CONTENT.value(), "Delete user successfully!");
+        } catch (Exception ex) {
+            log.error("ErrorMessage={}", ex.getMessage(), ex.getCause());
+            return new ResponseError(HttpStatus.BAD_REQUEST.value(), "Delete user fail!");
         }
     }
 

@@ -3,6 +3,9 @@ spring:
     name: UniScheduleService
   profiles:
     active: dev
+  data:
+    rest:
+      base-path: "/api/v1"
 
 application:
   title: UniSchedule Service
