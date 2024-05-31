@@ -19,7 +19,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping(value = "/api/v1/user")
+@RequestMapping(path = "/api/v1/user")
 @RequiredArgsConstructor
 @Slf4j
 @Tag(name = "User Controller")
@@ -28,7 +28,9 @@ public class UserController {
     final ScraperService scraperService;
     final UserService userService;
 
-    @PostMapping("/setupData")
+    @Operation(method = "POST", summary = "Get data of app", description = "Send a request via this API to get data for app")
+    @PostMapping(path ="/setupData")
+
     public ResponseEntity<DataAppResponseDTO> setUpData(@Valid @RequestBody DataAppRequestDTO request) {
         DataAppResponseDTO dataAppResponseDTO =  scraperService.scrappingData(request);
         if(dataAppResponseDTO == null)
@@ -38,7 +40,8 @@ public class UserController {
     }
 
     @Operation(method = "POST", summary = "subscribe new User", description = "Send a request via this API to subscribe new user")
-    @PostMapping("/subscribe")
+    @PostMapping(path = "/subscribe")
+    @ResponseStatus(HttpStatus.CREATED)
     public ResponseData<?> subscribeUser(@Valid @RequestBody UserRequestDTO request) {
         log.info("Request subscribe user, userId:{} , month: {}", request.getUserId(), request.getMonthsCount());
         try {
@@ -46,11 +49,11 @@ public class UserController {
             return new ResponseData<>(HttpStatus.CREATED.value(), "Subscribe user success!", result);
         } catch (Exception e) {
             log.info("ErrorMessage={}", e.getMessage(), e.getCause());
-            return new ResponseError(false, HttpStatus.BAD_REQUEST.value(), "Subscribe user fail!");
+            return new ResponseError(HttpStatus.BAD_REQUEST.value(), "Subscribe user fail!");
         }
     }
 
-    @GetMapping("/semester")
+    @GetMapping(path = "/semester")
     public List<String> getAllSemester() {
         return scraperService.getSemesterList();
     }
