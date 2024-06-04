@@ -1,4 +1,4 @@
-package com.service.unischeduleservice.dto.requests.news;
+package com.service.unischeduleservice.dto.resposes.news;
 
 import com.service.unischeduleservice.model.NewsModel;
 import lombok.*;
@@ -10,7 +10,7 @@ import java.util.List;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-public class NewsFacultyRequestDTO {
+public class NewsFacultyResponseDTO {
     private List<NewsModel> departmentNewsList;
     private String departmentNewsLinkAll;
 }

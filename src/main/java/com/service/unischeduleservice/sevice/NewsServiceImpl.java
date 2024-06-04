@@ -1,8 +1,9 @@
 package com.service.unischeduleservice.sevice;
 
-import com.service.unischeduleservice.dto.requests.news.NewsUniRequestDTO;
+import com.service.unischeduleservice.dto.resposes.news.NewsUniResponseDTO;
+import com.service.unischeduleservice.exception.ResourceNotFoundException;
 import com.service.unischeduleservice.model.NewsModel;
-import com.service.unischeduleservice.dto.requests.news.NewsFacultyRequestDTO;
+import com.service.unischeduleservice.dto.resposes.news.NewsFacultyResponseDTO;
 import com.service.unischeduleservice.constant.enums.FacultyEnum;
 import lombok.extern.slf4j.Slf4j;
 import org.jsoup.Jsoup;
@@ -16,8 +17,8 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-@Service
 @Slf4j
+@Service
 public class NewsServiceImpl implements NewsService {
 
     @Value("${url.home}")
@@ -33,19 +34,17 @@ public class NewsServiceImpl implements NewsService {
     private String universityNewsLinkAll;
 
     @Override
-    public NewsUniRequestDTO scrappingData() {
-        return NewsUniRequestDTO.builder()
+    public NewsUniResponseDTO scrappingData() {
+        return NewsUniResponseDTO.builder()
                 .universityNewsList(getUniversityNewsList())
                 .universityNewsLinkAll(universityNewsLinkAll)
                 .build();
     }
 
     @Override
-    public NewsFacultyRequestDTO getFacultyNews(String facultyName) {
-        NewsFacultyRequestDTO facultyDTO = new NewsFacultyRequestDTO();
-        log.info("new");
+    public NewsFacultyResponseDTO getFacultyNews(String facultyName) {
+        NewsFacultyResponseDTO facultyDTO = new NewsFacultyResponseDTO();
         FacultyEnum facultyEnum = FacultyEnum.fromString(facultyName);
-        log.info("new1");
         Document document;
         return switch (facultyEnum) {
             case IT -> {
@@ -77,7 +76,7 @@ public class NewsServiceImpl implements NewsService {
     private List<NewsModel> getUniversityNewsList() {
         Document document = getDocument(homeUrl);
         if(document.getElementById("ctl00_ContentPlaceHolder1_ctl00_tbViTri2") == null){
-            return null;
+            throw new ResourceNotFoundException("Not found data news!");
         }
 
         List<NewsModel> newsModelList = new ArrayList<>();

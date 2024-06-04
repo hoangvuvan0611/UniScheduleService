@@ -12,6 +12,7 @@ import java.util.List;
 @Setter
 public class MeetingModel {
     private String roomName;
+    private String practiceTeam;
     private List<String> startEndTime;
     private String week;
     private String currentWeek;

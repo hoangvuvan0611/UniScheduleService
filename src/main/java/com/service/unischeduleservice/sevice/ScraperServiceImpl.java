@@ -2,6 +2,7 @@ package com.service.unischeduleservice.sevice;
 
 import com.service.unischeduleservice.constant.DateTimeConstant;
 import com.service.unischeduleservice.dto.resposes.DataAppResponseDTO;
+import com.service.unischeduleservice.exception.ResourceNotFoundException;
 import com.service.unischeduleservice.model.CourseModel;
 import com.service.unischeduleservice.model.MeetingModel;
 import com.service.unischeduleservice.model.ScoreModel;
@@ -78,7 +79,7 @@ public class ScraperServiceImpl implements ScraperService{
         }
 
         if(document.getElementById("ctl00_ContentPlaceHolder1_ctl00_ddlChonNHHK") == null){
-            return null;
+            throw new ResourceNotFoundException("List semester is empty!");
         }
 
         Elements elements = document.getElementById("ctl00_ContentPlaceHolder1_ctl00_ddlChonNHHK").children();
@@ -103,7 +104,7 @@ public class ScraperServiceImpl implements ScraperService{
         }
 
         if(document.getElementById("ctl00_ContentPlaceHolder1_ctl00_lblContentMaSV") == null){
-            return null;
+            throw new ResourceNotFoundException("Not found userId = " + request.getUserId());
         }
         
         // select semester to get user information
@@ -111,12 +112,6 @@ public class ScraperServiceImpl implements ScraperService{
 
         boolean isStudent = !request.getUserId().matches(".*[a-zA-Z].*");
         DataAppResponseDTO dataAppResponseDTO = isStudent ? getDataStudent(document, request.getSemester()):getDataTeacher(document, request.getSemester());
-
-        if(request.getUserId().equals("6656485")) {
-            dataAppResponseDTO.setPremium("1");
-        } else {
-            dataAppResponseDTO.setPremium("0");
-        }
         return dataAppResponseDTO;
     }
 
@@ -180,19 +175,6 @@ public class ScraperServiceImpl implements ScraperService{
         } catch (IOException e) {
             throw new RuntimeException("Tuition unService!");
         }
-
-//        String currentSemesterTuitionPage = document
-//                .getElementById("ctl00_ContentPlaceHolder1_ctl00_lblNHHKOnline").text();
-//
-//        if(semester.equals(currentSemesterTuitionPage)){
-//            String tuition = document.getElementById("ctl00_ContentPlaceHolder1_ctl00_lblphaiDong").text();
-//            tuition = tuition.replaceAll("\\s+", "");
-//            userDTO.setTuitionFee(tuition);
-//
-//            tuition = document.getElementById("ctl00_ContentPlaceHolder1_ctl00_lblDaDongHKOffline").text();
-//            tuition = tuition.replaceAll("\\s+", "");
-//            userDTO.setPaidTuitionFee(tuition);
-//        }
 
         Elements elementsTuition = document.getElementById("ctl00_ContentPlaceHolder1_ctl00_pnlTongKetHocPhiCacHocKy")
                 .firstElementChild().firstElementChild().children();
@@ -272,6 +254,13 @@ public class ScraperServiceImpl implements ScraperService{
                 .classCode(elementsTd.get(4).text().trim())
                 .build();
 
+            //Get list practice Team
+            int size = elementsTd.get(7).children().size();
+            List<String> practiceTeamList = new ArrayList<>();
+            for(int i=0; i<size; i++){
+                String practiceTeam = elementsTd.get(7).children().get(i).text();
+                practiceTeamList.add(practiceTeam);
+            }
             List<String> day = List.of(elementsTd.get(8).text().split(" "));
             List<String> startSlot = List.of(elementsTd.get(9).text().split(" "));
             List<String> sumSlot = List.of(elementsTd.get(10).text().split(" "));
@@ -296,6 +285,7 @@ public class ScraperServiceImpl implements ScraperService{
                                 sumSlot.get(i)
                             )
                         )
+                        .practiceTeam(practiceTeamList.get(i))
                         .lesson(startSlot.get(i) + "," + sumSlot.get(i))
                         .roomName(room.get(i))
                         .courseModel(courseModel)

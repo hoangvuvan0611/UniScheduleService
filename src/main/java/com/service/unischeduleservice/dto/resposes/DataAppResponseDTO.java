@@ -25,7 +25,6 @@ public class DataAppResponseDTO {
     private String currentSemester;
     private String dateStartSemester;
     private String isStudent;
-    private String premium;
     private List<CourseModel> courseModelList;
     private List<SemesterModel> semesterModelList;
 }

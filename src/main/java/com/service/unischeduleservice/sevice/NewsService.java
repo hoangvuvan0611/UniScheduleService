@@ -1,10 +1,10 @@
 package com.service.unischeduleservice.sevice;
 
 
-import com.service.unischeduleservice.dto.requests.news.NewsUniRequestDTO;
-import com.service.unischeduleservice.dto.requests.news.NewsFacultyRequestDTO;
+import com.service.unischeduleservice.dto.resposes.news.NewsUniResponseDTO;
+import com.service.unischeduleservice.dto.resposes.news.NewsFacultyResponseDTO;
 
 public interface NewsService {
-    NewsUniRequestDTO scrappingData();
-    NewsFacultyRequestDTO getFacultyNews(String facultyName);
+    NewsUniResponseDTO scrappingData();
+    NewsFacultyResponseDTO getFacultyNews(String facultyName);
 }

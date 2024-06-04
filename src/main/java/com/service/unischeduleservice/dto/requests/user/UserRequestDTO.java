@@ -10,7 +10,7 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 public class UserRequestDTO {
-    @NotBlank(message = "userId must be not blank!")
+    @NotBlank(message = "UserId must be not blank!")
     private String userId;
 
     @Min(value = 1, message = "monthsCount must be greater than 0")
