@@ -104,19 +104,15 @@ public class NewsServiceImpl implements NewsService {
     }
 
     private List<NewsModel> getNewsFacultyOfFisheries(Document document) {
-        if(document.getElementById("col-1943509528") == null){
-//            log.info(document.getElementById("col-1943509528").text());
-            return null;
+        if(document.getElementById("col-457585105") == null){
+            throw new ResourceNotFoundException("Not found news in Faculty of Fisheries");
         }
 
-        System.out.println("dfdf");
-
         List<NewsModel> newsModelList = new ArrayList<>();
-        Elements elements = document.getElementsByClass("mh-list-post").first().getAllElements();
+        Elements elements = document.getElementById("col-457585105").getElementsByClass("mh-list-post").first().children();
 
-        System.out.println(elements);
         for(Element element: elements) {
-            System.out.println(element.children());
+            System.out.println(element.text());
             String url = element.attr("href");
             System.out.println(url);
         }

@@ -36,7 +36,7 @@ public class NewsController {
         }
     }
 
-    @GetMapping("/faculty={facultyName}")
+    @GetMapping("/{facultyName}")
     public ResponseEntity<?> getFacultyNews(@PathVariable @NotBlank(message = "facultyName must be not blank") String facultyName) {
         NewsFacultyResponseDTO newsFacultyResponseDTO = newsService.getFacultyNews(facultyName);
         return ResponseEntity.ok(newsFacultyResponseDTO);
