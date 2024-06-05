@@ -5,6 +5,7 @@ import com.service.unischeduleservice.exception.ResourceNotFoundException;
 import com.service.unischeduleservice.model.NewsModel;
 import com.service.unischeduleservice.dto.resposes.news.NewsFacultyResponseDTO;
 import com.service.unischeduleservice.constant.enums.FacultyEnum;
+import com.service.unischeduleservice.model.pool.NewsModelPool;
 import lombok.extern.slf4j.Slf4j;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -33,6 +34,8 @@ public class NewsServiceImpl implements NewsService {
     @Value("${url.university_news_link_all}")
     private String universityNewsLinkAll;
 
+    private final NewsModelPool newsModelPool = NewsModelPool.getInstance();
+
     @Override
     public NewsUniResponseDTO scrappingData() {
         return NewsUniResponseDTO.builder()
@@ -46,6 +49,7 @@ public class NewsServiceImpl implements NewsService {
         NewsFacultyResponseDTO facultyDTO = new NewsFacultyResponseDTO();
         FacultyEnum facultyEnum = FacultyEnum.fromString(facultyName);
         Document document;
+
         return switch (facultyEnum) {
             case IT -> {
                 document = getDocument(facultyOfIt);
@@ -56,9 +60,6 @@ public class NewsServiceImpl implements NewsService {
                 document = getDocument(facultyOfFisheries);
                 facultyDTO.setDepartmentNewsList(getNewsFacultyOfFisheries(document));
                 yield facultyDTO;
-            }
-            default -> {
-                yield null;
             }
         };
     }
@@ -104,18 +105,27 @@ public class NewsServiceImpl implements NewsService {
     }
 
     private List<NewsModel> getNewsFacultyOfFisheries(Document document) {
-        if(document.getElementById("col-457585105") == null){
-            throw new ResourceNotFoundException("Not found news in Faculty of Fisheries");
-        }
 
+        Elements elements = document.getElementsByClass("mh-list-post");
+//                .first()
+//                .firstElementChild()
+//                .getAllElements();
+
+        System.out.println(elements.size());
         List<NewsModel> newsModelList = new ArrayList<>();
-        Elements elements = document.getElementById("col-457585105").getElementsByClass("mh-list-post").first().children();
-
-        for(Element element: elements) {
-            System.out.println(element.text());
-            String url = element.attr("href");
-            System.out.println(url);
-        }
+        NewsModel newsModel;
+//        for(Element element: elements) {
+//            String title = element.child(0).text().trim();
+//            String url = element.attr("href");
+//            System.out.println(url);
+//            newsModel = newsModelPool.getNewsModel(
+//                    title.substring(0, title.indexOf("(") -1 ),
+//                    url,
+//                    title.substring(title.indexOf("(") + 1, title.indexOf(")"))
+//            );
+//            System.out.println(newsModel.hashCode());
+//            newsModelList.add(newsModel);
+//        }
         return newsModelList;
     }
 
