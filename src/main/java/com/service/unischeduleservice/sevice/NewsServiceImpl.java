@@ -3,9 +3,7 @@ package com.service.unischeduleservice.sevice;
 import com.service.unischeduleservice.dto.resposes.news.NewsUniResponseDTO;
 import com.service.unischeduleservice.exception.ResourceNotFoundException;
 import com.service.unischeduleservice.model.NewsModel;
-import com.service.unischeduleservice.dto.resposes.news.NewsFacultyResponseDTO;
 import com.service.unischeduleservice.constant.enums.FacultyEnum;
-import com.service.unischeduleservice.model.pool.NewsModelPool;
 import lombok.extern.slf4j.Slf4j;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -34,8 +32,6 @@ public class NewsServiceImpl implements NewsService {
     @Value("${url.university_news_link_all}")
     private String universityNewsLinkAll;
 
-    private final NewsModelPool newsModelPool = NewsModelPool.getInstance();
-
     @Override
     public NewsUniResponseDTO scrappingData() {
         return NewsUniResponseDTO.builder()
@@ -45,21 +41,18 @@ public class NewsServiceImpl implements NewsService {
     }
 
     @Override
-    public NewsFacultyResponseDTO getFacultyNews(String facultyName) {
-        NewsFacultyResponseDTO facultyDTO = new NewsFacultyResponseDTO();
+    public List<NewsModel> getFacultyNews(String facultyName) {
         FacultyEnum facultyEnum = FacultyEnum.fromString(facultyName);
         Document document;
 
         return switch (facultyEnum) {
             case IT -> {
                 document = getDocument(facultyOfIt);
-                facultyDTO.setDepartmentNewsList(getNewsFacultyOfIt(document));
-                yield facultyDTO;
+                yield getNewsFacultyOfIt(document);
             }
             case FISHERIES -> {
                 document = getDocument(facultyOfFisheries);
-                facultyDTO.setDepartmentNewsList(getNewsFacultyOfFisheries(document));
-                yield facultyDTO;
+                yield getNewsFacultyOfFisheries(document);
             }
         };
     }
@@ -92,11 +85,12 @@ public class NewsServiceImpl implements NewsService {
                 String date = elementTd.getElementsByClass("NgayTitle").text();
                 elementTd.attr("href");
                 String url = elementTd.attr("href");
+
                 NewsModel newsModel = NewsModel.builder()
-                    .title(title)
-                    .url("https://daotao.vnua.edu.vn/" + url)
-                    .date(date)
-                    .build();
+                        .title(title)
+                        .url("https://daotao.vnua.edu.vn/" + url)
+                        .date(date)
+                        .build();
                 newsModelList.add(newsModel);
 
             }
@@ -105,46 +99,49 @@ public class NewsServiceImpl implements NewsService {
     }
 
     private List<NewsModel> getNewsFacultyOfFisheries(Document document) {
-
         Elements elements = document.getElementsByClass("mh-list-post");
-//                .first()
-//                .firstElementChild()
-//                .getAllElements();
+        if(elements == null) {
+            throw new ResourceNotFoundException("Not found data fisheries!");
+        }
 
-        System.out.println(elements.size());
         List<NewsModel> newsModelList = new ArrayList<>();
-        NewsModel newsModel;
-//        for(Element element: elements) {
-//            String title = element.child(0).text().trim();
-//            String url = element.attr("href");
-//            System.out.println(url);
-//            newsModel = newsModelPool.getNewsModel(
-//                    title.substring(0, title.indexOf("(") -1 ),
-//                    url,
-//                    title.substring(title.indexOf("(") + 1, title.indexOf(")"))
-//            );
-//            System.out.println(newsModel.hashCode());
-//            newsModelList.add(newsModel);
-//        }
+        NewsModel news;
+        for(Element element : elements) {
+            Elements listNews = element.getElementsByTag("a");
+            for(Element li : listNews) {
+                String text = li.text().trim();
+                news = NewsModel.builder()
+                        .title(text.substring(0, text.lastIndexOf(" ")))
+                        .url(li.attr("href"))
+                        .date(text.substring(text.lastIndexOf(" ") + 1))
+                        .build();
+                newsModelList.add(news);
+            }
+        }
         return newsModelList;
     }
 
     private List<NewsModel> getNewsFacultyOfIt(Document document) {
-        if(document.getElementById("col-1943509528") == null){
-            log.info("hoang");
-            log.info(document.getElementById("col-1943509528").toString());
-            return null;
+        Element element = document.getElementById("content-area");
+        if(element == null) {
+            throw new ResourceNotFoundException("Not found data IT!");
         }
 
         List<NewsModel> newsModelList = new ArrayList<>();
-//        Elements elements = document.getElementsByClass("mh-list-post").first().getAllElements();
-//
-//        System.out.println(elements);
-//        for(Element element: elements) {
-//            System.out.println(element.children());
-//            String url = element.attr("href");
-//            System.out.println(url);
-//        }
+        Elements elements = element.firstElementChild().children();
+        NewsModel newsModel;
+        for(int i=0; i<elements.size(); i++) {
+            if(i + 3 >= elements.size()) {
+                break;
+            }
+            newsModel = NewsModel.builder()
+                    .title(elements.get(i).getElementsByClass("title").text())
+                    .date(elements.get(i+1).getElementsByClass("post-meta").text())
+                    .url(elements.get(i+3).getElementsByClass("readmore").attr("href"))
+                    .build();
+            i+=4;
+            newsModelList.add(newsModel);
+        }
         return newsModelList;
     }
 }
