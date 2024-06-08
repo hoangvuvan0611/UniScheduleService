@@ -16,7 +16,6 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -24,7 +23,6 @@ import java.sql.Time;
 import java.text.ParseException;
 import java.time.LocalTime;
 import java.util.*;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -354,14 +352,15 @@ public class ScraperServiceImpl implements ScraperService{
                         courseModelList.add(courseModel);
                     }
                 } finally {
-                    System.out.println("meeting");
                     downLatchChild.countDown();
                 }
             });
 
             // if is not student stop scrap TestSchedule data
             if (!isStudent) {
+                downLatchChild.await();
                 dataAppResponseDTO.setCourseModelList(courseModelList);
+                return;
             }
 
             // The student is doing a thesis and has no exam schedule
@@ -404,7 +403,6 @@ public class ScraperServiceImpl implements ScraperService{
                         }
                     }
                 } finally {
-                    System.out.println("test");
                     downLatchChild.countDown();
                 }
             });
@@ -437,7 +435,6 @@ public class ScraperServiceImpl implements ScraperService{
                         }
                     }
                 } finally {
-                    System.out.println("tuition");
                     downLatchChild.countDown();
                 }
             });
