@@ -6,6 +6,9 @@ spring:
   data:
     rest:
       base-path: "/api/v1"
+  threads:
+    virtual:
+      enabled: true
 
 application:
   title: UniSchedule Service

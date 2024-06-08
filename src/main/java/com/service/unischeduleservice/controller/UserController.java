@@ -32,6 +32,8 @@ public class UserController {
             return new ResponseData<>(HttpStatus.OK.value(), "Data app by userId = " + request.getUserId(), dataAppResponseDTO);
         }catch (ResourceNotFoundException ex) {
             return new ResponseError(HttpStatus.NOT_FOUND.value(), ex.getMessage());
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
         }
     }
 }

@@ -7,6 +7,6 @@ import com.service.unischeduleservice.dto.requests.DataAppRequestDTO;
 import java.util.List;
 
 public interface ScraperService {
-    DataAppResponseDTO scrappingData(DataAppRequestDTO request);
+    DataAppResponseDTO scrappingData(DataAppRequestDTO request) throws InterruptedException;
     List<String> getSemesterList();
 }
