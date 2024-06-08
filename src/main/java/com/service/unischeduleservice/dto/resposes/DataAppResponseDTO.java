@@ -4,6 +4,7 @@ import com.service.unischeduleservice.model.CourseModel;
 import com.service.unischeduleservice.model.SemesterModel;
 import lombok.*;
 
+import java.util.ArrayList;
 import java.util.List;
 @Builder
 @Getter
@@ -25,6 +26,6 @@ public class DataAppResponseDTO {
     private String currentSemester;
     private String dateStartSemester;
     private String isStudent;
-    private List<CourseModel> courseModelList;
-    private List<SemesterModel> semesterModelList;
+    private List<CourseModel> courseModelList = new ArrayList<>();
+    private List<SemesterModel> semesterModelList = new ArrayList<>();
 }

@@ -21,6 +21,7 @@ import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.sql.Time;
+import java.text.ParseException;
 import java.time.LocalTime;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -70,6 +71,8 @@ public class ScraperServiceImpl implements ScraperService{
     private String thirteenthPeriod;
 
     private final ExecutorService executorService = Executors.newVirtualThreadPerTaskExecutor();
+    private final ExecutorService executorDataCourse = Executors.newVirtualThreadPerTaskExecutor();
+
 
     @Override
     public DataAppResponseDTO scrappingData(DataAppRequestDTO request) throws InterruptedException {
@@ -124,7 +127,7 @@ public class ScraperServiceImpl implements ScraperService{
         return dataAppResponseDTO;
     }
 
-    private DataAppResponseDTO getDataTeacher(Document document, String semester){
+    private DataAppResponseDTO getDataTeacher(Document document, String semester) throws InterruptedException {
         CountDownLatch downLatch = new CountDownLatch(1);
         // Get all information of teacher
         DataAppResponseDTO dataAppResponseDTO = new DataAppResponseDTO();
@@ -142,13 +145,16 @@ public class ScraperServiceImpl implements ScraperService{
         dataAppResponseDTO.setDateStartSemester(dateStartSemester);
 
         // to get all data course(test, meeting)
-        scrapeDataCourse(dataAppResponseDTO, false, semester, dataAppResponseDTO, downLatch);
+        executorService.submit(() -> {
+            scrapeDataCourse(dataAppResponseDTO, false, semester, dataAppResponseDTO, downLatch);
+        });
+        downLatch.await();
         return dataAppResponseDTO;
     }
 
     protected DataAppResponseDTO getDataStudent(Document document, String semester) throws InterruptedException {
 
-        CountDownLatch downLatch = new CountDownLatch(3);
+        CountDownLatch downLatch = new CountDownLatch(4);
         //Get information of student
         String userId = document.getElementById("ctl00_ContentPlaceHolder1_ctl00_lblContentMaSV").text().trim();
         String nameAndDateOfBirth = document
@@ -200,7 +206,6 @@ public class ScraperServiceImpl implements ScraperService{
         executorService.submit(() -> {
             getDataSemesterScore(dataAppResponseDTO, dataAppResponseDTO, downLatch);
         });
-        System.out.println("dad");
         downLatch.await();
         return dataAppResponseDTO;
     }
@@ -212,17 +217,14 @@ public class ScraperServiceImpl implements ScraperService{
             } catch (IOException e) {
                 throw new RuntimeException("Score unService!");
             }
-
             Elements elements = document.getElementsByClass("row-diemTK");
             String totalCredit = elements.get(elements.size() - 2).text();
             totalCredit = totalCredit.substring(totalCredit.indexOf(":") + 1).trim();
             String gpa = elements.get(elements.size() - 4).text();
             gpa = gpa.substring(gpa.indexOf(":") + 1).trim();
-
             dataAppResponseDTO.setTotalCredit(totalCredit);
             dataAppResponseDTO.setGpa(gpa);
         } finally {
-            System.out.println("child score");
             downLatch.countDown();
         }
     }
@@ -262,153 +264,187 @@ public class ScraperServiceImpl implements ScraperService{
                 }
             }
         } finally {
-            System.out.println("child tuition");
             downLatch.countDown();
         }
     }
 
     @SneakyThrows
     void scrapeDataCourse(DataAppResponseDTO user, boolean isStudent, String semester, DataAppResponseDTO dataAppResponseDTO, CountDownLatch downLatch){
+        CountDownLatch downLatchChild;
+        if (isStudent) {
+            downLatchChild = new CountDownLatch(3);
+        } else {
+            downLatchChild = new CountDownLatch(1);
+        }
+
         try {
             List<CourseModel> courseModelList = new ArrayList<>();
-            CourseModel courseModel;
 
-            Document document;
-            try {
-                document = Jsoup.connect(scheduleUrl + user.getUserId()).get();
-            } catch (IOException e) {
-                throw new RuntimeException("Schedule unService!");
-            }
-
-            /// choose semester in dao tao page to read data meeting
-            document = selectSemester(document, scheduleUrl + user.getUserId(), semester);
-
-            Elements elementsTable = document.getElementsByClass("grid-roll2").first().children();
-
-            for(Element elementTable: elementsTable){
-                Elements elementsTd = elementTable.child(0).child(0).children();
-
-                courseModel = CourseModel.builder()
-                        .courseId(elementsTd.get(0).text().trim())
-                        .courseName(elementsTd.get(1).text().trim())
-                        .groupCode(elementsTd.get(2).text().trim())
-                        .credit(elementsTd.get(3).text().trim())
-                        .classCode(elementsTd.get(4).text().trim())
-                        .build();
-
-                //Get list practice Team
-                int size = elementsTd.get(7).children().size();
-                List<String> practiceTeamList = new ArrayList<>();
-                for(int i=0; i<size; i++){
-                    String practiceTeam = elementsTd.get(7).children().get(i).text();
-                    practiceTeamList.add(practiceTeam);
+            // Meeting
+            executorDataCourse.submit(() -> {
+                Document document;
+                try {
+                    document = Jsoup.connect(scheduleUrl + user.getUserId()).get();
+                } catch (IOException e) {
+                    throw new RuntimeException("Schedule unService!");
                 }
-                List<String> day = List.of(elementsTd.get(8).text().split(" "));
-                List<String> startSlot = List.of(elementsTd.get(9).text().split(" "));
-                List<String> sumSlot = List.of(elementsTd.get(10).text().split(" "));
-                List<String> room = List.of(elementsTd.get(11).text().split(" "));
-                List<String> time = List.of(elementsTd.get(13).text().split(" "));
+                // choose semester in dao tao page to read data meeting
+                document = selectSemester(document, scheduleUrl + user.getUserId(), semester);
+                /// CPU-bound
+                Elements elementsTable = document.getElementsByClass("grid-roll2").first().children();
+                try {
+                    CourseModel courseModel;
+                    for(Element elementTable: elementsTable){
+                        Elements elementsTd = elementTable.child(0).child(0).children();
 
-                List<MeetingModel> meetingList = new ArrayList<>();
-                MeetingModel meeting;
-                for(byte i=0; i<time.size(); i++){
-                    List<Byte> listWeek = formatWeek(time.get(i));
-                    for (Byte week : listWeek) {
-                        meeting = MeetingModel.builder()
-                                .startEndTime(
-                                        dateTimeFormat(
-                                                formatDay(day.get(i)),
-                                                week,
-                                                MyDateTime.convertStringToDate(
-                                                        user.getDateStartSemester(),
-                                                        DateTimeConstant.DATE_FORMAT
-                                                ),
-                                                startSlot.get(i),
-                                                sumSlot.get(i)
-                                        )
-                                )
-                                .practiceTeam(practiceTeamList.get(i))
-                                .lesson(startSlot.get(i) + "," + sumSlot.get(i))
-                                .roomName(room.get(i))
-                                .courseModel(courseModel)
-                                .week(time.get(i))
-                                .currentWeek(week.toString())
+                        courseModel = CourseModel.builder()
+                                .courseId(elementsTd.get(0).text().trim())
+                                .courseName(elementsTd.get(1).text().trim())
+                                .groupCode(elementsTd.get(2).text().trim())
+                                .credit(elementsTd.get(3).text().trim())
+                                .classCode(elementsTd.get(4).text().trim())
                                 .build();
-                        meetingList.add(meeting);
+
+                        //Get list practice Team
+                        int size = elementsTd.get(7).children().size();
+                        List<String> practiceTeamList = new ArrayList<>();
+                        for(int i=0; i<size; i++){
+                            String practiceTeam = elementsTd.get(7).children().get(i).text();
+                            practiceTeamList.add(practiceTeam);
+                        }
+                        List<String> day = List.of(elementsTd.get(8).text().split(" "));
+                        List<String> startSlot = List.of(elementsTd.get(9).text().split(" "));
+                        List<String> sumSlot = List.of(elementsTd.get(10).text().split(" "));
+                        List<String> room = List.of(elementsTd.get(11).text().split(" "));
+                        List<String> time = List.of(elementsTd.get(13).text().split(" "));
+
+                        List<MeetingModel> meetingList = new ArrayList<>();
+                        MeetingModel meeting;
+                        for(byte i=0; i<time.size(); i++){
+                            List<Byte> listWeek = formatWeek(time.get(i));
+                            for (Byte week : listWeek) {
+                                try {
+                                    meeting = MeetingModel.builder()
+                                            .startEndTime(
+                                                    dateTimeFormat(
+                                                            formatDay(day.get(i)),
+                                                            week,
+                                                            MyDateTime.convertStringToDate(
+                                                                    user.getDateStartSemester(),
+                                                                    DateTimeConstant.DATE_FORMAT
+                                                            ),
+                                                            startSlot.get(i),
+                                                            sumSlot.get(i)
+                                                    )
+                                            )
+                                            .practiceTeam(practiceTeamList.get(i))
+                                            .lesson(startSlot.get(i) + "," + sumSlot.get(i))
+                                            .roomName(room.get(i))
+                                            .courseModel(courseModel)
+                                            .week(time.get(i))
+                                            .currentWeek(week.toString())
+                                            .build();
+                                } catch (ParseException e) {
+                                    throw new RuntimeException(e);
+                                }
+                                meetingList.add(meeting);
+                            }
+                        }
+                        courseModel.setMeetingList(meetingList);
+                        courseModelList.add(courseModel);
                     }
+                } finally {
+                    System.out.println("meeting");
+                    downLatchChild.countDown();
                 }
-                courseModel.setMeetingList(meetingList);
-                courseModelList.add(courseModel);
-            }
+            });
 
             // if is not student stop scrap TestSchedule data
             if (!isStudent) {
                 dataAppResponseDTO.setCourseModelList(courseModelList);
             }
 
-            try {
-                document = Jsoup.connect(testScheduleUrl + user.getUserId()).get();
-            } catch (IOException e) {
-                throw new RuntimeException("TestSchedule unService!");
-            }
+            // The student is doing a thesis and has no exam schedule
+            executorDataCourse.submit(() -> {
+                try {
+                    String currentSemester = "";
+                    Document document;
+                    try {
+                        document = Jsoup.connect(testScheduleUrl + user.getUserId()).get();
+                    } catch (IOException e) {
+                        throw new RuntimeException("TestSchedule unService!");
+                    }
 
-            String currentSemester = document.getElementById("ctl00_ContentPlaceHolder1_ctl00_dropNHHK")
-                    .child(0).text().trim();
-
-            /// The student is doing a thesis and has no exam schedule
-            if(currentSemester.equals(user.getCurrentSemester()) && document.getElementById("ctl00_ContentPlaceHolder1_ctl00_gvXem") != null){
-                Elements elementsTr = document.getElementById("ctl00_ContentPlaceHolder1_ctl00_gvXem")
-                        .child(0).children();
-                for(int i=1; i<elementsTr.size(); i++){
-                    Elements elementsTd = elementsTr.get(i).children();
-                    String courseCode = elementsTd.get(1).text().trim();
-                    for (CourseModel courseModelDTO : courseModelList) {
-                        if (courseCode.equals(courseModelDTO.getCourseId())) {
-                            courseModelDTO.setTestRoom(elementsTd.get(9).text().trim());
-                            String startTime = elementsTd.get(6).text().trim() + " " +
-                                    timeFormat(
-                                            elementsTd.get(7).text().trim(),
-                                            elementsTd.get(8).text().trim()
-                                    ).get(0);
-                            String endTime = elementsTd.get(6).text().trim() + " " +
-                                    timeFormat(
-                                            elementsTd.get(7).text().trim(),
-                                            elementsTd.get(8).text().trim()
-                                    ).get(1);
-                            courseModelDTO.setLesson(elementsTd.get(7).text().trim() + "," + elementsTd.get(8).text().trim());
-                            courseModelDTO.setTestStartDateTime(startTime);
-                            courseModelDTO.setTestEndDateTime(endTime);
+                    currentSemester = document.getElementById("ctl00_ContentPlaceHolder1_ctl00_dropNHHK")
+                            .child(0).text().trim();
+                    if(currentSemester.equals(user.getCurrentSemester()) && document.getElementById("ctl00_ContentPlaceHolder1_ctl00_gvXem") != null){
+                        Elements elementsTr = document.getElementById("ctl00_ContentPlaceHolder1_ctl00_gvXem")
+                                .child(0).children();
+                        for(int i=1; i<elementsTr.size(); i++){
+                            Elements elementsTd = elementsTr.get(i).children();
+                            String courseCode = elementsTd.get(1).text().trim();
+                            for (CourseModel courseModelDTO : courseModelList) {
+                                if (courseCode.equals(courseModelDTO.getCourseId())) {
+                                    courseModelDTO.setTestRoom(elementsTd.get(9).text().trim());
+                                    String startTime = elementsTd.get(6).text().trim() + " " +
+                                            timeFormat(
+                                                    elementsTd.get(7).text().trim(),
+                                                    elementsTd.get(8).text().trim()
+                                            ).get(0);
+                                    String endTime = elementsTd.get(6).text().trim() + " " +
+                                            timeFormat(
+                                                    elementsTd.get(7).text().trim(),
+                                                    elementsTd.get(8).text().trim()
+                                            ).get(1);
+                                    courseModelDTO.setLesson(elementsTd.get(7).text().trim() + "," + elementsTd.get(8).text().trim());
+                                    courseModelDTO.setTestStartDateTime(startTime);
+                                    courseModelDTO.setTestEndDateTime(endTime);
+                                }
+                            }
                         }
                     }
+                } finally {
+                    System.out.println("test");
+                    downLatchChild.countDown();
                 }
-            }
+            });
 
-            try {
-                document = Jsoup.connect(tuitionUrl + user.getUserId()).get();
-            } catch (IOException e) {
-                throw new RuntimeException("Tuition unService!");
-            }
+            // Tuition of course
+            executorDataCourse.submit(() -> {
+                try {
+                    Document document;
+                    try {
+                        document = Jsoup.connect(tuitionUrl + user.getUserId()).get();
+                    } catch (IOException e) {
+                        throw new RuntimeException("Tuition unService!");
+                    }
 
-            currentSemester = document.getElementById("ctl00_ContentPlaceHolder1_ctl00_lblNHHKOnline").text().trim();
+                    String currentSemester = document.getElementById("ctl00_ContentPlaceHolder1_ctl00_lblNHHKOnline").text().trim();
 
-            if(currentSemester.equals(user.getCurrentSemester()) && document.getElementById("ctl00_ContentPlaceHolder1_ctl00_gvHocPhi") != null){
-                Elements elementsTr = document.getElementById("ctl00_ContentPlaceHolder1_ctl00_gvHocPhi")
-                        .child(0).children();
-                for(int i=1; i<elementsTr.size(); i++){
-                    Elements elementsTd = elementsTr.get(i).children();
-                    String courseCode = elementsTd.get(1).text().trim();
-                    for(CourseModel courseModelDTO : courseModelList){
-                        if(courseCode.equals(courseModelDTO.getCourseId())){
-                            String tuition = elementsTd.get(7).text().trim();
-                            tuition = tuition.replaceAll("\\s+", "");
-                            courseModelDTO.setTuitionFee(tuition);
+                    if(currentSemester.equals(user.getCurrentSemester()) && document.getElementById("ctl00_ContentPlaceHolder1_ctl00_gvHocPhi") != null){
+                        Elements elementsTr = document.getElementById("ctl00_ContentPlaceHolder1_ctl00_gvHocPhi")
+                                .child(0).children();
+                        for(int i=1; i<elementsTr.size(); i++){
+                            Elements elementsTd = elementsTr.get(i).children();
+                            String courseCode = elementsTd.get(1).text().trim();
+                            for(CourseModel courseModelDTO : courseModelList){
+                                if(courseCode.equals(courseModelDTO.getCourseId())){
+                                    String tuition = elementsTd.get(7).text().trim();
+                                    tuition = tuition.replaceAll("\\s+", "");
+                                    courseModelDTO.setTuitionFee(tuition);
+                                }
+                            }
                         }
                     }
+                } finally {
+                    System.out.println("tuition");
+                    downLatchChild.countDown();
                 }
-            }
+            });
+
+            downLatchChild.await();
             dataAppResponseDTO.setCourseModelList(courseModelList);
         } finally {
-            System.out.println("child");
             downLatch.countDown();
         }
     }
@@ -466,7 +502,6 @@ public class ScraperServiceImpl implements ScraperService{
             }
             dataAppResponseDTO.setSemesterModelList(semesterModelList);
         } finally {
-            System.out.println("semester");
             downLatch.countDown();
         }
     }
@@ -505,7 +540,6 @@ public class ScraperServiceImpl implements ScraperService{
                 .post();
 
     }
-
 
     private List<Byte> formatWeek(String num){
         List<Byte> integerList = new ArrayList<>();
