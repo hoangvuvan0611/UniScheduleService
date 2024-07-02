@@ -27,6 +27,7 @@ public class UserController {
     @PostMapping
     public ResponseData<?> setUpData(@Valid @RequestBody DataAppRequestDTO request) {
         log.info("Get data app by userId={}", request.getUserId());
+        System.out.println(request.getFCMToken());
         try {
             DataAppResponseDTO dataAppResponseDTO =  scraperService.scrappingData(request);
             return new ResponseData<>(HttpStatus.OK.value(), "Data app by userId = " + request.getUserId(), dataAppResponseDTO);

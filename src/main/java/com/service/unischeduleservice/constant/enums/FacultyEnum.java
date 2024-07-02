@@ -5,7 +5,9 @@ import lombok.Getter;
 @Getter
 public enum FacultyEnum {
     IT("Công nghệ thông tin"),
-    FISHERIES("Thủy sản");
+    FISHERIES("Thủy sản"),
+    ACCOUNTING("Kế toán"),
+    ECONOMICS("Kinh tế và phát triển nông thôn");
 
     private final String faculty;
     FacultyEnum(String faculty) {

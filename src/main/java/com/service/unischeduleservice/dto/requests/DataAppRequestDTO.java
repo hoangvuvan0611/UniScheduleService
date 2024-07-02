@@ -13,4 +13,5 @@ public class DataAppRequestDTO {
     private String userId;
     @NotBlank(message = "semester must be not blank")
     private String semester;
+    private String fCMToken;
 }

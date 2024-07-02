@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 @Slf4j
 @Service
@@ -29,6 +30,9 @@ public class NewsServiceImpl implements NewsService {
     @Value("${url.faculty_of_it}")
     private String facultyOfIt;
 
+    @Value("${url.faculty_of_accounting}")
+    private String facultyOfAccounting;
+
     @Value("${url.university_news_link_all}")
     private String universityNewsLinkAll;
 
@@ -42,6 +46,7 @@ public class NewsServiceImpl implements NewsService {
 
     @Override
     public List<NewsModel> getFacultyNews(String facultyName) {
+        System.out.println("'"+facultyName+"'");
         FacultyEnum facultyEnum = FacultyEnum.fromString(facultyName);
         Document document;
 
@@ -54,6 +59,11 @@ public class NewsServiceImpl implements NewsService {
                 document = getDocument(facultyOfFisheries);
                 yield getNewsFacultyOfFisheries(document);
             }
+            case ACCOUNTING -> {
+                document = getDocument(facultyOfAccounting);
+                yield getNewsFacultyOfAccounting(document);
+            }
+            case ECONOMICS -> null;
         };
     }
 
@@ -140,6 +150,24 @@ public class NewsServiceImpl implements NewsService {
                     .url(elements.get(i+3).getElementsByClass("readmore").attr("href"))
                     .build();
             i+=4;
+            newsModelList.add(newsModel);
+        }
+        return newsModelList;
+    }
+
+    private List<NewsModel> getNewsFacultyOfAccounting(Document document) {
+        Element elementClass = document.getElementById("dnn_ctr5957_ModuleContent");
+        if(elementClass == null) {
+            throw new ResourceNotFoundException("Not found data Accounting!");
+        }
+        Elements elements = elementClass.getElementsByClass("news-cate-other").first().children();
+        List<NewsModel> newsModelList = new ArrayList<>();
+        NewsModel newsModel;
+        for (Element element : elements) {
+            newsModel = NewsModel.builder()
+                    .title(element.text())
+                    .url(Objects.requireNonNull(element.firstElementChild()).attr("href"))
+                    .build();
             newsModelList.add(newsModel);
         }
         return newsModelList;

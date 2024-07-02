@@ -9,12 +9,14 @@ import com.service.unischeduleservice.model.NewsModel;
 import com.service.unischeduleservice.sevice.NewsService;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.constraints.NotBlank;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+@Slf4j
 @RestController
 @RequestMapping(value = "/api/v1/news")
 public class NewsController {
@@ -38,6 +40,7 @@ public class NewsController {
 
     @GetMapping("/{facultyName}")
     public ResponseData<?> getFacultyNews(@PathVariable @NotBlank(message = "facultyName must be not blank") String facultyName) {
+        log.info(facultyName);
         try {
             ResponseDataList<NewsModel> responseDataList = new ResponseDataList<>(newsService.getFacultyNews(facultyName));
             return new ResponseData<>(HttpStatus.OK.value(), facultyName, responseDataList);
