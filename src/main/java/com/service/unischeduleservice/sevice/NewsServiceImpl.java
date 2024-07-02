@@ -33,6 +33,9 @@ public class NewsServiceImpl implements NewsService {
     @Value("${url.faculty_of_accounting}")
     private String facultyOfAccounting;
 
+    @Value("${url.faculty_of_economics}")
+    private String facultyOfEconomics;
+
     @Value("${url.university_news_link_all}")
     private String universityNewsLinkAll;
 
@@ -63,7 +66,10 @@ public class NewsServiceImpl implements NewsService {
                 document = getDocument(facultyOfAccounting);
                 yield getNewsFacultyOfAccounting(document);
             }
-            case ECONOMICS -> null;
+            case ECONOMICS -> {
+                document = getDocument(facultyOfEconomics);
+                yield getNewsFacultyOfEconomics(document);
+            }
         };
     }
 
@@ -159,6 +165,24 @@ public class NewsServiceImpl implements NewsService {
         Element elementClass = document.getElementById("dnn_ctr5957_ModuleContent");
         if(elementClass == null) {
             throw new ResourceNotFoundException("Not found data Accounting!");
+        }
+        Elements elements = elementClass.getElementsByClass("news-cate-other").first().children();
+        List<NewsModel> newsModelList = new ArrayList<>();
+        NewsModel newsModel;
+        for (Element element : elements) {
+            newsModel = NewsModel.builder()
+                    .title(element.text())
+                    .url(Objects.requireNonNull(element.firstElementChild()).attr("href"))
+                    .build();
+            newsModelList.add(newsModel);
+        }
+        return newsModelList;
+    }
+
+    private List<NewsModel> getNewsFacultyOfEconomics(Document document) {
+        Element elementClass = document.getElementById("dnn_HomeMiddle_RightPanel");
+        if(elementClass == null) {
+            throw new ResourceNotFoundException("Not found data Economics!");
         }
         Elements elements = elementClass.getElementsByClass("news-cate-other").first().children();
         List<NewsModel> newsModelList = new ArrayList<>();
