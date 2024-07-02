@@ -7,7 +7,15 @@ public enum FacultyEnum {
     IT("Công nghệ thông tin"),
     FISHERIES("Thủy sản"),
     ACCOUNTING("Kế toán & Quản trị KD"),
-    ECONOMICS("Kinh tế & PTNT");
+    ECONOMICS("Kinh tế & PTNT"),
+    VETERINARY_MEDICINE("Thú y"),
+    NATURAL_RESOURCES_ENVIRONMENT("Tài nguyên và Môi trường"),
+    TOURISM_FOREIGN_LANGUAGES("Du lịch và Ngoại ngữ"),
+    FOOD_TECHNOLOGY("Công nghệ thực phẩm"),
+    MECHANICAL_ELECTRICAL_ENGINEERING("Cơ - Điện"),
+    SOCIAL_SCIENCES("Khoa học xã hội"),
+    AGRONOMY("Nông học"),
+    BIOTECHNOLOGY("Công nghệ sinh học");
 
     private final String faculty;
     FacultyEnum(String faculty) {

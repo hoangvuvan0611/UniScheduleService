@@ -39,6 +39,9 @@ public class NewsServiceImpl implements NewsService {
     @Value("${url.university_news_link_all}")
     private String universityNewsLinkAll;
 
+    @Value("${url.faculty_of_veterinary_medicine}")
+    private String facultyOfVeterinaryMedicine;
+
     @Override
     public NewsUniResponseDTO scrappingData() {
         return NewsUniResponseDTO.builder()
@@ -70,6 +73,17 @@ public class NewsServiceImpl implements NewsService {
                 document = getDocument(facultyOfEconomics);
                 yield getNewsFacultyOfEconomics(document);
             }
+            case VETERINARY_MEDICINE -> {
+                document = getDocument(facultyOfVeterinaryMedicine);
+                yield getNewsFacultyOfVeterinaryMedicine(document);
+            }
+            case NATURAL_RESOURCES_ENVIRONMENT -> null;
+            case TOURISM_FOREIGN_LANGUAGES -> null;
+            case FOOD_TECHNOLOGY -> null;
+            case MECHANICAL_ELECTRICAL_ENGINEERING -> null;
+            case SOCIAL_SCIENCES -> null;
+            case AGRONOMY -> null;
+            case BIOTECHNOLOGY -> null;
         };
     }
 
@@ -188,6 +202,25 @@ public class NewsServiceImpl implements NewsService {
         List<NewsModel> newsModelList = new ArrayList<>();
         NewsModel newsModel;
         for (Element element : elements) {
+            newsModel = NewsModel.builder()
+                    .title(element.text())
+                    .url(Objects.requireNonNull(element.firstElementChild()).attr("href"))
+                    .build();
+            newsModelList.add(newsModel);
+        }
+        return newsModelList;
+    }
+
+    private List<NewsModel> getNewsFacultyOfVeterinaryMedicine(Document document) {
+        Element elementClass = document.getElementById("content_pages");
+        if(elementClass == null) {
+            throw new ResourceNotFoundException("Not found data Veterinary Medicine!");
+        }
+        Elements elements = elementClass.getElementsByClass("list_news").first().children();
+        List<NewsModel> newsModelList = new ArrayList<>();
+        NewsModel newsModel;
+        for (Element element : elements) {
+            element = Objects.requireNonNull(element.getElementsByClass("capt").first());
             newsModel = NewsModel.builder()
                     .title(element.text())
                     .url(Objects.requireNonNull(element.firstElementChild()).attr("href"))
