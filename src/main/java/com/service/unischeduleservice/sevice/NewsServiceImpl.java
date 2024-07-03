@@ -48,6 +48,12 @@ public class NewsServiceImpl implements NewsService {
     @Value("${url.faculty_of_tourism_foreign_languages}")
     private String facultyOfTourismForeignLanguages;
 
+    @Value("${url.faculty_of_food_technology}")
+    private String facultyOfFoodTechnology;
+
+    @Value("${url.faculty_of_mechanical_electrical_engineering}")
+    private String facultyOfMechanicalElectricalEngineering;
+
     @Override
     public NewsUniResponseDTO scrappingData() {
         return NewsUniResponseDTO.builder()
@@ -91,8 +97,14 @@ public class NewsServiceImpl implements NewsService {
                 document = getDocument(facultyOfTourismForeignLanguages);
                 yield getNewsFacultyOfTourismForeignLanguages(document);
             }
-            case FOOD_TECHNOLOGY -> null;
-            case MECHANICAL_ELECTRICAL_ENGINEERING -> null;
+            case FOOD_TECHNOLOGY -> {
+                document = getDocument(facultyOfFoodTechnology);
+                yield getNewsFacultyOfFoodTechnology(document);
+            }
+            case MECHANICAL_ELECTRICAL_ENGINEERING -> {
+                document = getDocument(facultyOfMechanicalElectricalEngineering);
+                yield getNewsFacultyOfMechanicalElectricalEngineering(document);
+            }
             case SOCIAL_SCIENCES -> null;
             case AGRONOMY -> null;
             case BIOTECHNOLOGY -> null;
@@ -272,6 +284,42 @@ public class NewsServiceImpl implements NewsService {
             newsModel = NewsModel.builder()
                     .title(element.text())
                     .url(element.firstElementChild().firstElementChild().attr("href"))
+                    .build();
+            newsModelList.add(newsModel);
+        }
+        return newsModelList;
+    }
+
+    private List<NewsModel> getNewsFacultyOfFoodTechnology(Document document) {
+        Element elementClass = document.getElementById("dnn_HomeMiddle_RightPanel");
+        if(elementClass == null) {
+            throw new ResourceNotFoundException("Not found data Food Technology!");
+        }
+        Elements elements = elementClass.getElementsByClass("news-cate-other").first().children();
+        List<NewsModel> newsModelList = new ArrayList<>();
+        NewsModel newsModel;
+        for (Element element : elements) {
+            newsModel = NewsModel.builder()
+                    .title(element.text())
+                    .url(Objects.requireNonNull(element.firstElementChild()).attr("href"))
+                    .build();
+            newsModelList.add(newsModel);
+        }
+        return newsModelList;
+    }
+
+    private List<NewsModel> getNewsFacultyOfMechanicalElectricalEngineering(Document document) {
+        Element elementClass = document.getElementById("content");
+        if(elementClass == null) {
+            throw new ResourceNotFoundException("Not found data Mechanical Electrical Engineering!");
+        }
+        Elements elements = elementClass.getElementsByClass("mh-list-post").first().firstElementChild().children();
+        List<NewsModel> newsModelList = new ArrayList<>();
+        NewsModel newsModel;
+        for (Element element : elements) {
+            newsModel = NewsModel.builder()
+                    .title(element.text())
+                    .url(Objects.requireNonNull(element.firstElementChild()).attr("href"))
                     .build();
             newsModelList.add(newsModel);
         }
