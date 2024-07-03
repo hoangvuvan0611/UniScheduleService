@@ -57,6 +57,12 @@ public class NewsServiceImpl implements NewsService {
     @Value("${url.faculty_of_social_sciences}")
     private String facultyOfSocialSciences;
 
+    @Value("${url.faculty_of_agronomy}")
+    private String facultyOfAgronomy;
+
+    @Value("${url.faculty_of_biotechnology}")
+    private String facultyOfBiotechnology;
+
     @Override
     public NewsUniResponseDTO scrappingData() {
         return NewsUniResponseDTO.builder()
@@ -112,8 +118,14 @@ public class NewsServiceImpl implements NewsService {
                 document = getDocument(facultyOfSocialSciences);
                 yield getNewsFacultyOfSocialSciences(document);
             }
-            case AGRONOMY -> null;
-            case BIOTECHNOLOGY -> null;
+            case AGRONOMY -> {
+                document = getDocument(facultyOfAgronomy);
+                yield getNewsFacultyOfAgronomy(document);
+            }
+            case BIOTECHNOLOGY -> {
+                document = getDocument(facultyOfBiotechnology);
+                yield getNewsFacultyOfBiotechnology(document);
+            }
         };
     }
 
@@ -338,6 +350,42 @@ public class NewsServiceImpl implements NewsService {
         Element elementClass = document.getElementById("dnn_HomeMiddle_RightPanel");
         if(elementClass == null) {
             throw new ResourceNotFoundException("Not found data Social Sciences!");
+        }
+        Elements elements = elementClass.getElementsByClass("news-cate-other").first().children();
+        List<NewsModel> newsModelList = new ArrayList<>();
+        NewsModel newsModel;
+        for (Element element : elements) {
+            newsModel = NewsModel.builder()
+                    .title(element.text())
+                    .url(Objects.requireNonNull(element.firstElementChild()).attr("href"))
+                    .build();
+            newsModelList.add(newsModel);
+        }
+        return newsModelList;
+    }
+
+    private List<NewsModel> getNewsFacultyOfAgronomy(Document document) {
+        Element elementClass = document.getElementById("dnn_Col3_3");
+        if(elementClass == null) {
+            throw new ResourceNotFoundException("Not found data Agronomy!");
+        }
+        Elements elements = elementClass.getElementsByClass("news-cate-other").first().children();
+        List<NewsModel> newsModelList = new ArrayList<>();
+        NewsModel newsModel;
+        for (Element element : elements) {
+            newsModel = NewsModel.builder()
+                    .title(element.text())
+                    .url(Objects.requireNonNull(element.firstElementChild()).attr("href"))
+                    .build();
+            newsModelList.add(newsModel);
+        }
+        return newsModelList;
+    }
+
+    private List<NewsModel> getNewsFacultyOfBiotechnology(Document document) {
+        Element elementClass = document.getElementById("dnn_HomeMiddle_RightPanel");
+        if(elementClass == null) {
+            throw new ResourceNotFoundException("Not found data Biotechnology!");
         }
         Elements elements = elementClass.getElementsByClass("news-cate-other").first().children();
         List<NewsModel> newsModelList = new ArrayList<>();
