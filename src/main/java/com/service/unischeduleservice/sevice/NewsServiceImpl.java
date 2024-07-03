@@ -42,6 +42,12 @@ public class NewsServiceImpl implements NewsService {
     @Value("${url.faculty_of_veterinary_medicine}")
     private String facultyOfVeterinaryMedicine;
 
+    @Value("${url.faculty_of_natural_resources_environment}")
+    private String facultyOfNaturalResourcesEnvironment;
+
+    @Value("${url.faculty_of_tourism_foreign_languages}")
+    private String facultyOfTourismForeignLanguages;
+
     @Override
     public NewsUniResponseDTO scrappingData() {
         return NewsUniResponseDTO.builder()
@@ -77,8 +83,14 @@ public class NewsServiceImpl implements NewsService {
                 document = getDocument(facultyOfVeterinaryMedicine);
                 yield getNewsFacultyOfVeterinaryMedicine(document);
             }
-            case NATURAL_RESOURCES_ENVIRONMENT -> null;
-            case TOURISM_FOREIGN_LANGUAGES -> null;
+            case NATURAL_RESOURCES_ENVIRONMENT -> {
+                document = getDocument(facultyOfNaturalResourcesEnvironment);
+                yield getNewsFacultyOfNaturalResourcesEnvironment(document);
+            }
+            case TOURISM_FOREIGN_LANGUAGES -> {
+                document = getDocument(facultyOfTourismForeignLanguages);
+                yield getNewsFacultyOfTourismForeignLanguages(document);
+            }
             case FOOD_TECHNOLOGY -> null;
             case MECHANICAL_ELECTRICAL_ENGINEERING -> null;
             case SOCIAL_SCIENCES -> null;
@@ -224,6 +236,42 @@ public class NewsServiceImpl implements NewsService {
             newsModel = NewsModel.builder()
                     .title(element.text())
                     .url(Objects.requireNonNull(element.firstElementChild()).attr("href"))
+                    .build();
+            newsModelList.add(newsModel);
+        }
+        return newsModelList;
+    }
+
+    private List<NewsModel> getNewsFacultyOfNaturalResourcesEnvironment(Document document) {
+        Element elementClass = document.getElementById("dnn_HomeMiddle_RightPanel");
+        if(elementClass == null) {
+            throw new ResourceNotFoundException("Not found data Economics!");
+        }
+        Elements elements = elementClass.getElementsByClass("news-cate-other").first().children();
+        List<NewsModel> newsModelList = new ArrayList<>();
+        NewsModel newsModel;
+        for (Element element : elements) {
+            newsModel = NewsModel.builder()
+                    .title(element.text())
+                    .url(Objects.requireNonNull(element.firstElementChild()).attr("href"))
+                    .build();
+            newsModelList.add(newsModel);
+        }
+        return newsModelList;
+    }
+
+    private List<NewsModel> getNewsFacultyOfTourismForeignLanguages(Document document) {
+        Element elementClass = document.getElementById("content");
+        if(elementClass == null) {
+            throw new ResourceNotFoundException("Not found data Economics!");
+        }
+        Elements elements = elementClass.getElementsByClass("large-columns-1").first().children();
+        List<NewsModel> newsModelList = new ArrayList<>();
+        NewsModel newsModel;
+        for (Element element : elements) {
+            newsModel = NewsModel.builder()
+                    .title(element.text())
+                    .url(element.firstElementChild().firstElementChild().attr("href"))
                     .build();
             newsModelList.add(newsModel);
         }
