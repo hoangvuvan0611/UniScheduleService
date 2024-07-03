@@ -54,6 +54,9 @@ public class NewsServiceImpl implements NewsService {
     @Value("${url.faculty_of_mechanical_electrical_engineering}")
     private String facultyOfMechanicalElectricalEngineering;
 
+    @Value("${url.faculty_of_social_sciences}")
+    private String facultyOfSocialSciences;
+
     @Override
     public NewsUniResponseDTO scrappingData() {
         return NewsUniResponseDTO.builder()
@@ -105,7 +108,10 @@ public class NewsServiceImpl implements NewsService {
                 document = getDocument(facultyOfMechanicalElectricalEngineering);
                 yield getNewsFacultyOfMechanicalElectricalEngineering(document);
             }
-            case SOCIAL_SCIENCES -> null;
+            case SOCIAL_SCIENCES -> {
+                document = getDocument(facultyOfSocialSciences);
+                yield getNewsFacultyOfSocialSciences(document);
+            }
             case AGRONOMY -> null;
             case BIOTECHNOLOGY -> null;
         };
@@ -314,6 +320,26 @@ public class NewsServiceImpl implements NewsService {
             throw new ResourceNotFoundException("Not found data Mechanical Electrical Engineering!");
         }
         Elements elements = elementClass.getElementsByClass("mh-list-post").first().firstElementChild().children();
+        List<NewsModel> newsModelList = new ArrayList<>();
+        NewsModel newsModel;
+        for (Element element : elements) {
+            String textElement = element.text();
+            newsModel = NewsModel.builder()
+                    .title(textElement.substring(0, textElement.indexOf("(")).trim())
+                    .url(Objects.requireNonNull(element.firstElementChild()).attr("href"))
+                    .date(textElement.substring(textElement.indexOf("(") + 1, textElement.length() - 1))
+                    .build();
+            newsModelList.add(newsModel);
+        }
+        return newsModelList;
+    }
+
+    private List<NewsModel> getNewsFacultyOfSocialSciences(Document document) {
+        Element elementClass = document.getElementById("dnn_HomeMiddle_RightPanel");
+        if(elementClass == null) {
+            throw new ResourceNotFoundException("Not found data Social Sciences!");
+        }
+        Elements elements = elementClass.getElementsByClass("news-cate-other").first().children();
         List<NewsModel> newsModelList = new ArrayList<>();
         NewsModel newsModel;
         for (Element element : elements) {
