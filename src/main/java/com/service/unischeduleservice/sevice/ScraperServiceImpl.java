@@ -11,7 +11,6 @@ import com.service.unischeduleservice.utils.date_time.MyDateTime;
 import com.service.unischeduleservice.dto.requests.DataAppRequestDTO;
 import lombok.SneakyThrows;
 import org.jsoup.Connection;
-import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
@@ -26,6 +25,8 @@ import java.util.*;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+
+import static org.jsoup.Jsoup.*;
 
 @Service
 public class ScraperServiceImpl implements ScraperService{
@@ -71,19 +72,56 @@ public class ScraperServiceImpl implements ScraperService{
     private final ExecutorService executorService = Executors.newVirtualThreadPerTaskExecutor();
     private final ExecutorService executorDataCourse = Executors.newVirtualThreadPerTaskExecutor();
 
+    private Map<String, String> cookies;
+
 
     @Override
     public DataAppResponseDTO scrappingData(DataAppRequestDTO request) throws InterruptedException {
         return scrappingUserTuition(request);
     }
 
+    @SneakyThrows
     @Override
     public List<String> getSemesterList() {
-        Document document;
-        try {
-            document = Jsoup.connect(allSemesterUrl).get();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
+        Document document = connect("https://daotao.vnua.edu.vn/Default.aspx?page=thoikhoabieu").get();
+
+        if(document.getElementById("ctl00_ContentPlaceHolder1_ctl00_lblquenmk").text().equals("XÁC THỰC ĐĂNG NHẬP WEBSITE ĐĂNG KÝ MÔN HỌC")) {
+
+            // Get page contain captcha and form for submit
+            Connection.Response initialResponse;
+            initialResponse = connect("https://daotao.vnua.edu.vn/Default.aspx?page=thoikhoabieu")
+                    .ignoreContentType(true)
+                    .method(Connection.Method.GET)
+                    .execute();
+
+            // Read captcha
+            Document documentCaptcha = initialResponse.parse();
+            String captcha = documentCaptcha.getElementById("ctl00_ContentPlaceHolder1_ctl00_lblCapcha").text();
+
+            // Lấy các trường ẩn
+            String eventArgument = documentCaptcha.select("input[name=__EVENTARGUMENT]").val();
+            String eventTarget = documentCaptcha.select("input[name=__EVENTTARGET]").val();
+            String viewState = documentCaptcha.select("input[name=__VIEWSTATE]").attr("value");
+            String viewStateGenerator = documentCaptcha.select("input[name=__VIEWSTATEGENERATOR]").attr("value");
+
+            // Bước 2: Gửi mã captcha cùng với form mà không tải lại trang
+            Connection.Response formResponse = connect("https://daotao.vnua.edu.vn/Default.aspx?page=thoikhoabieu")
+                    .data("ctl00$ContentPlaceHolder1$ctl00$txtCaptcha", captcha) // Tên trường input của captcha, cần thay đổi nếu khác
+                    .data("__VIEWSTATE", viewState)
+                    .data("__EVENTTARGET", eventTarget) // Có thể để trống nếu không cần
+                    .data("__EVENTARGUMENT", eventArgument)
+                    .data("__VIEWSTATEGENERATOR", viewStateGenerator)
+                    .data("ctl00$ContentPlaceHolder1$ctl00$btnXacNhan", "Vào website")
+                    .method(Connection.Method.POST)
+                    .execute();
+
+            cookies = formResponse.cookies();
+            document = connect(allSemesterUrl)
+                    .timeout(1000*45)
+                    .cookies(cookies)
+                    .get();
+        } else {
+            document = connect(allSemesterUrl).get();
         }
 
         if(document.getElementById("ctl00_ContentPlaceHolder1_ctl00_ddlChonNHHK") == null){
@@ -102,24 +140,61 @@ public class ScraperServiceImpl implements ScraperService{
         return getDataUser(request);
     }
 
+    @SneakyThrows
     private DataAppResponseDTO getDataUser(DataAppRequestDTO request) throws InterruptedException {
         // SchedulePage
-        Document document;
-        try {
-            document = Jsoup.connect(scheduleUrl + request.getUserId()).get();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
+        Document document = connect("https://daotao.vnua.edu.vn/Default.aspx?page=thoikhoabieu")
+                .timeout(1000*45).get();
+
+        if(document.getElementById("ctl00_ContentPlaceHolder1_ctl00_lblquenmk").text().equals("XÁC THỰC ĐĂNG NHẬP WEBSITE ĐĂNG KÝ MÔN HỌC")) {
+
+            // Get page contain captcha and form for submit
+            Connection.Response initialResponse = connect("https://daotao.vnua.edu.vn/Default.aspx?page=thoikhoabieu")
+                    .ignoreContentType(true)
+                    .method(Connection.Method.GET)
+                    .execute();
+
+            // Read captcha
+            Document documentCaptcha = initialResponse.parse();
+            String captcha = documentCaptcha.getElementById("ctl00_ContentPlaceHolder1_ctl00_lblCapcha").text();
+
+            // Lấy các trường ẩn
+            String eventArgument = documentCaptcha.select("input[name=__EVENTARGUMENT]").val();
+            String eventTarget = documentCaptcha.select("input[name=__EVENTTARGET]").val();
+            String viewState = documentCaptcha.select("input[name=__VIEWSTATE]").attr("value");
+            String viewStateGenerator = documentCaptcha.select("input[name=__VIEWSTATEGENERATOR]").attr("value");
+
+            // Bước 2: Gửi mã captcha cùng với form mà không tải lại trang
+            Connection.Response formResponse = connect("https://daotao.vnua.edu.vn/Default.aspx?page=thoikhoabieu")
+                    .data("ctl00$ContentPlaceHolder1$ctl00$txtCaptcha", captcha) // Tên trường input của captcha, cần thay đổi nếu khác
+                    .data("__VIEWSTATE", viewState)
+                    .data("__EVENTTARGET", eventTarget) // Có thể để trống nếu không cần
+                    .data("__EVENTARGUMENT", eventArgument)
+                    .data("__VIEWSTATEGENERATOR", viewStateGenerator)
+                    .data("ctl00$ContentPlaceHolder1$ctl00$btnXacNhan", "Vào website")
+                    .method(Connection.Method.POST)
+                    .execute();
+
+            cookies = formResponse.cookies();
+            document = connect(scheduleUrl + request.getUserId())
+                    .timeout(1000*45)
+                    .cookies(cookies)
+                    .get();
+
+        } else {
+            document = connect(scheduleUrl + request.getUserId())
+                    .timeout(1000*45)
+                    .get();
         }
 
         if(document.getElementById("ctl00_ContentPlaceHolder1_ctl00_lblContentMaSV") == null){
             throw new ResourceNotFoundException("Not found userId = " + request.getUserId());
         }
-        
-        // select semester to get user information
-        document = selectSemester(document, scheduleUrl + request.getUserId(), request.getSemester());
+
 
         boolean isStudent = !request.getUserId().matches(".*[a-zA-Z].*");
-        DataAppResponseDTO dataAppResponseDTO = isStudent
+        DataAppResponseDTO dataAppResponseDTO;
+        dataAppResponseDTO = isStudent
                 ? getDataStudent(document, request.getSemester())
                 : getDataTeacher(document, request.getSemester());
         return dataAppResponseDTO;
@@ -151,12 +226,11 @@ public class ScraperServiceImpl implements ScraperService{
     }
 
     protected DataAppResponseDTO getDataStudent(Document document, String semester) throws InterruptedException {
-
-        CountDownLatch downLatch = new CountDownLatch(4);
         //Get information of student
         String userId = document.getElementById("ctl00_ContentPlaceHolder1_ctl00_lblContentMaSV").text().trim();
         String nameAndDateOfBirth = document
                 .getElementById("ctl00_ContentPlaceHolder1_ctl00_lblContentTenSV").text().trim();
+
         String userName = nameAndDateOfBirth.substring(0, nameAndDateOfBirth.indexOf("-")).trim();
         String dateOfBirth = nameAndDateOfBirth.substring(nameAndDateOfBirth.indexOf(":") + 1).trim();
         String classAndDepartmentAndSpecialized = document
@@ -185,33 +259,41 @@ public class ScraperServiceImpl implements ScraperService{
                 .isStudent("1")
                 .build();
 
+        CountDownLatch downLatch = new CountDownLatch(4);
+
         // Schedule Page, get all data meeting
         executorService.submit(() -> {
             scrapeDataCourse(dataAppResponseDTO, true, semester, dataAppResponseDTO, downLatch);
+            System.out.println("course");
         });
 
         // Tuition page, get tuition data of student
         executorService.submit(() -> {
-            scrapeDataTuition(document, dataAppResponseDTO, semester, downLatch);
+            scrapeDataTuition(dataAppResponseDTO, semester, downLatch);
+            System.out.println("tuition");
         });
-
 
         // Score page, get score data of student
         executorService.submit(() -> {
-            scrapeDataScore(document, dataAppResponseDTO, downLatch);
+            scrapeDataScore(dataAppResponseDTO, downLatch);
+            System.out.println("score");
         });
 
         executorService.submit(() -> {
             getDataSemesterScore(dataAppResponseDTO, dataAppResponseDTO, downLatch);
+            System.out.println("Semester Score");
         });
         downLatch.await();
+        System.out.println("main");
         return dataAppResponseDTO;
     }
 
-    void scrapeDataScore(Document document, DataAppResponseDTO dataAppResponseDTO, CountDownLatch downLatch) {
+    void scrapeDataScore(DataAppResponseDTO dataAppResponseDTO, CountDownLatch downLatch) {
         try {
+            Document document;
             try {
-                document = Jsoup.connect(scoreSemesterUrl + dataAppResponseDTO.getUserId()).get();
+                document = connect(scoreSemesterUrl + dataAppResponseDTO.getUserId())
+                        .cookies(cookies).get();
             } catch (IOException e) {
                 throw new RuntimeException("Score unService!");
             }
@@ -227,10 +309,12 @@ public class ScraperServiceImpl implements ScraperService{
         }
     }
 
-    void scrapeDataTuition(Document document, DataAppResponseDTO dataAppResponseDTO, String semester, CountDownLatch downLatch) {
+    void scrapeDataTuition(DataAppResponseDTO dataAppResponseDTO, String semester, CountDownLatch downLatch) {
         try {
+            Document document;
             try {
-                document = Jsoup.connect(tuitionUrl + dataAppResponseDTO.getUserId()).get();
+                document = connect(tuitionUrl + dataAppResponseDTO.getUserId())
+                        .cookies(cookies).get();
             } catch (IOException e) {
                 throw new RuntimeException("Tuition unService!");
             }
@@ -268,178 +352,152 @@ public class ScraperServiceImpl implements ScraperService{
 
     @SneakyThrows
     void scrapeDataCourse(DataAppResponseDTO user, boolean isStudent, String semester, DataAppResponseDTO dataAppResponseDTO, CountDownLatch downLatch){
-        CountDownLatch downLatchChild;
-        if (isStudent) {
-            downLatchChild = new CountDownLatch(3);
-        } else {
-            downLatchChild = new CountDownLatch(1);
-        }
 
         try {
             List<CourseModel> courseModelList = new ArrayList<>();
 
             // Meeting
-            executorDataCourse.submit(() -> {
-                Document document;
-                try {
-                    document = Jsoup.connect(scheduleUrl + user.getUserId()).get();
-                } catch (IOException e) {
-                    throw new RuntimeException("Schedule unService!");
+            Document document;
+            try {
+                document = connect(scheduleUrl + user.getUserId())
+                        .cookies(cookies).get();
+            } catch (IOException e) {
+                throw new RuntimeException("Schedule unService!");
+            }
+            // choose semester in dao tao page to read data meeting
+            document = selectSemester(document, scheduleUrl + user.getUserId(), semester);
+            /// CPU-bound
+            Elements elementsTable = document.getElementsByClass("grid-roll2").first().children();
+            CourseModel courseModel;
+            for(Element elementTable: elementsTable){
+                Elements elementsTd = elementTable.child(0).child(0).children();
+
+                courseModel = CourseModel.builder()
+                        .courseId(elementsTd.get(0).text().trim())
+                        .courseName(elementsTd.get(1).text().trim())
+                        .groupCode(elementsTd.get(2).text().trim())
+                        .credit(elementsTd.get(3).text().trim())
+                        .classCode(elementsTd.get(4).text().trim())
+                        .build();
+
+                //Get list practice Team
+                int size = elementsTd.get(7).children().size();
+                List<String> practiceTeamList = new ArrayList<>();
+                for(int i=0; i<size; i++){
+                    String practiceTeam = elementsTd.get(7).children().get(i).text();
+                    practiceTeamList.add(practiceTeam);
                 }
-                // choose semester in dao tao page to read data meeting
-                document = selectSemester(document, scheduleUrl + user.getUserId(), semester);
-                /// CPU-bound
-                Elements elementsTable = document.getElementsByClass("grid-roll2").first().children();
-                try {
-                    CourseModel courseModel;
-                    for(Element elementTable: elementsTable){
-                        Elements elementsTd = elementTable.child(0).child(0).children();
+                List<String> day = List.of(elementsTd.get(8).text().split(" "));
+                List<String> startSlot = List.of(elementsTd.get(9).text().split(" "));
+                List<String> sumSlot = List.of(elementsTd.get(10).text().split(" "));
+                List<String> room = List.of(elementsTd.get(11).text().split(" "));
+                List<String> time = List.of(elementsTd.get(13).text().split(" "));
 
-                        courseModel = CourseModel.builder()
-                                .courseId(elementsTd.get(0).text().trim())
-                                .courseName(elementsTd.get(1).text().trim())
-                                .groupCode(elementsTd.get(2).text().trim())
-                                .credit(elementsTd.get(3).text().trim())
-                                .classCode(elementsTd.get(4).text().trim())
-                                .build();
-
-                        //Get list practice Team
-                        int size = elementsTd.get(7).children().size();
-                        List<String> practiceTeamList = new ArrayList<>();
-                        for(int i=0; i<size; i++){
-                            String practiceTeam = elementsTd.get(7).children().get(i).text();
-                            practiceTeamList.add(practiceTeam);
-                        }
-                        List<String> day = List.of(elementsTd.get(8).text().split(" "));
-                        List<String> startSlot = List.of(elementsTd.get(9).text().split(" "));
-                        List<String> sumSlot = List.of(elementsTd.get(10).text().split(" "));
-                        List<String> room = List.of(elementsTd.get(11).text().split(" "));
-                        List<String> time = List.of(elementsTd.get(13).text().split(" "));
-
-                        List<MeetingModel> meetingList = new ArrayList<>();
-                        MeetingModel meeting;
-                        for(byte i=0; i<time.size(); i++){
-                            List<Byte> listWeek = formatWeek(time.get(i));
-                            for (Byte week : listWeek) {
-                                try {
-                                    meeting = MeetingModel.builder()
-                                            .startEndTime(
-                                                    dateTimeFormat(
-                                                            formatDay(day.get(i)),
-                                                            week,
-                                                            MyDateTime.convertStringToDate(
-                                                                    user.getDateStartSemester(),
-                                                                    DateTimeConstant.DATE_FORMAT
-                                                            ),
-                                                            startSlot.get(i),
-                                                            sumSlot.get(i)
-                                                    )
+                List<MeetingModel> meetingList = new ArrayList<>();
+                MeetingModel meeting;
+                for(byte i=0; i<time.size(); i++){
+                    List<Byte> listWeek = formatWeek(time.get(i));
+                    for (Byte week : listWeek) {
+                        try {
+                            meeting = MeetingModel.builder()
+                                    .startEndTime(
+                                            dateTimeFormat(
+                                                    formatDay(day.get(i)),
+                                                    week,
+                                                    MyDateTime.convertStringToDate(
+                                                            user.getDateStartSemester(),
+                                                            DateTimeConstant.DATE_FORMAT
+                                                    ),
+                                                    startSlot.get(i),
+                                                    sumSlot.get(i)
                                             )
-                                            .practiceTeam(practiceTeamList.get(i))
-                                            .lesson(startSlot.get(i) + "," + sumSlot.get(i))
-                                            .roomName(room.get(i))
-                                            .courseModel(courseModel)
-                                            .week(time.get(i))
-                                            .currentWeek(week.toString())
-                                            .build();
-                                } catch (ParseException e) {
-                                    throw new RuntimeException(e);
-                                }
-                                meetingList.add(meeting);
-                            }
+                                    )
+                                    .practiceTeam(practiceTeamList.get(i))
+                                    .lesson(startSlot.get(i) + "," + sumSlot.get(i))
+                                    .roomName(room.get(i))
+                                    .courseModel(courseModel)
+                                    .week(time.get(i))
+                                    .currentWeek(week.toString())
+                                    .build();
+                        } catch (ParseException e) {
+                            throw new RuntimeException(e);
                         }
-                        courseModel.setMeetingList(meetingList);
-                        courseModelList.add(courseModel);
+                        meetingList.add(meeting);
                     }
-                } finally {
-                    downLatchChild.countDown();
                 }
-            });
+                courseModel.setMeetingList(meetingList);
+                courseModelList.add(courseModel);
+            }
 
             // if is not student stop scrap TestSchedule data
             if (!isStudent) {
-                downLatchChild.await();
                 dataAppResponseDTO.setCourseModelList(courseModelList);
                 return;
             }
 
             // The student is doing a thesis and has no exam schedule
-            executorDataCourse.submit(() -> {
-                try {
-                    String currentSemester = "";
-                    Document document;
-                    try {
-                        document = Jsoup.connect(testScheduleUrl + user.getUserId()).get();
-                    } catch (IOException e) {
-                        throw new RuntimeException("TestSchedule unService!");
-                    }
+            String currentSemester = "";
+            try {
+                document = connect(testScheduleUrl + user.getUserId())
+                        .cookies(cookies).get();
+            } catch (IOException e) {
+                throw new RuntimeException("TestSchedule unService!");
+            }
 
-                    currentSemester = document.getElementById("ctl00_ContentPlaceHolder1_ctl00_dropNHHK")
-                            .child(0).text().trim();
-                    if(currentSemester.equals(user.getCurrentSemester()) && document.getElementById("ctl00_ContentPlaceHolder1_ctl00_gvXem") != null){
-                        Elements elementsTr = document.getElementById("ctl00_ContentPlaceHolder1_ctl00_gvXem")
-                                .child(0).children();
-                        for(int i=1; i<elementsTr.size(); i++){
-                            Elements elementsTd = elementsTr.get(i).children();
-                            String courseCode = elementsTd.get(1).text().trim();
-                            for (CourseModel courseModelDTO : courseModelList) {
-                                if (courseCode.equals(courseModelDTO.getCourseId())) {
-                                    courseModelDTO.setTestRoom(elementsTd.get(9).text().trim());
-                                    String startTime = elementsTd.get(6).text().trim() + " " +
-                                            timeFormat(
-                                                    elementsTd.get(7).text().trim(),
-                                                    elementsTd.get(8).text().trim()
-                                            ).get(0);
-                                    String endTime = elementsTd.get(6).text().trim() + " " +
-                                            timeFormat(
-                                                    elementsTd.get(7).text().trim(),
-                                                    elementsTd.get(8).text().trim()
-                                            ).get(1);
-                                    courseModelDTO.setLesson(elementsTd.get(7).text().trim() + "," + elementsTd.get(8).text().trim());
-                                    courseModelDTO.setTestStartDateTime(startTime);
-                                    courseModelDTO.setTestEndDateTime(endTime);
-                                }
-                            }
+            currentSemester = document.getElementById("ctl00_ContentPlaceHolder1_ctl00_dropNHHK")
+                    .child(0).text().trim();
+            if(currentSemester.equals(user.getCurrentSemester()) && document.getElementById("ctl00_ContentPlaceHolder1_ctl00_gvXem") != null){
+                Elements elementsTr = document.getElementById("ctl00_ContentPlaceHolder1_ctl00_gvXem")
+                        .child(0).children();
+                for(int i=1; i<elementsTr.size(); i++){
+                    Elements elementsTd = elementsTr.get(i).children();
+                    String courseCode = elementsTd.get(1).text().trim();
+                    for (CourseModel courseModelDTO : courseModelList) {
+                        if (courseCode.equals(courseModelDTO.getCourseId())) {
+                            courseModelDTO.setTestRoom(elementsTd.get(9).text().trim());
+                            String startTime = elementsTd.get(6).text().trim() + " " +
+                                    timeFormat(
+                                            elementsTd.get(7).text().trim(),
+                                            elementsTd.get(8).text().trim()
+                                    ).get(0);
+                            String endTime = elementsTd.get(6).text().trim() + " " +
+                                    timeFormat(
+                                            elementsTd.get(7).text().trim(),
+                                            elementsTd.get(8).text().trim()
+                                    ).get(1);
+                            courseModelDTO.setLesson(elementsTd.get(7).text().trim() + "," + elementsTd.get(8).text().trim());
+                            courseModelDTO.setTestStartDateTime(startTime);
+                            courseModelDTO.setTestEndDateTime(endTime);
                         }
                     }
-                } finally {
-                    downLatchChild.countDown();
                 }
-            });
+            }
 
             // Tuition of course
-            executorDataCourse.submit(() -> {
-                try {
-                    Document document;
-                    try {
-                        document = Jsoup.connect(tuitionUrl + user.getUserId()).get();
-                    } catch (IOException e) {
-                        throw new RuntimeException("Tuition unService!");
-                    }
+            try {
+                document = connect(tuitionUrl + user.getUserId())
+                        .cookies(cookies).get();
+            } catch (IOException e) {
+                throw new RuntimeException("Tuition unService!");
+            }
 
-                    String currentSemester = document.getElementById("ctl00_ContentPlaceHolder1_ctl00_lblNHHKOnline").text().trim();
+            currentSemester = document.getElementById("ctl00_ContentPlaceHolder1_ctl00_lblNHHKOnline").text().trim();
 
-                    if(currentSemester.equals(user.getCurrentSemester()) && document.getElementById("ctl00_ContentPlaceHolder1_ctl00_gvHocPhi") != null){
-                        Elements elementsTr = document.getElementById("ctl00_ContentPlaceHolder1_ctl00_gvHocPhi")
-                                .child(0).children();
-                        for(int i=1; i<elementsTr.size(); i++){
-                            Elements elementsTd = elementsTr.get(i).children();
-                            String courseCode = elementsTd.get(1).text().trim();
-                            for(CourseModel courseModelDTO : courseModelList){
-                                if(courseCode.equals(courseModelDTO.getCourseId())){
-                                    String tuition = elementsTd.get(7).text().trim();
-                                    tuition = tuition.replaceAll("\\s+", "");
-                                    courseModelDTO.setTuitionFee(tuition);
-                                }
-                            }
+            if(currentSemester.equals(user.getCurrentSemester()) && document.getElementById("ctl00_ContentPlaceHolder1_ctl00_gvHocPhi") != null){
+                Elements elementsTr = document.getElementById("ctl00_ContentPlaceHolder1_ctl00_gvHocPhi")
+                        .child(0).children();
+                for(int i=1; i<elementsTr.size(); i++){
+                    Elements elementsTd = elementsTr.get(i).children();
+                    String courseCode = elementsTd.get(1).text().trim();
+                    for(CourseModel courseModelDTO : courseModelList){
+                        if(courseCode.equals(courseModelDTO.getCourseId())){
+                            String tuition = elementsTd.get(7).text().trim();
+                            tuition = tuition.replaceAll("\\s+", "");
+                            courseModelDTO.setTuitionFee(tuition);
                         }
                     }
-                } finally {
-                    downLatchChild.countDown();
                 }
-            });
-
-            downLatchChild.await();
+            }
             dataAppResponseDTO.setCourseModelList(courseModelList);
         } finally {
             downLatch.countDown();
@@ -453,7 +511,8 @@ public class ScraperServiceImpl implements ScraperService{
 
             Document document;
             try {
-                document = Jsoup.connect(scoreSemesterUrl + user.getUserId()).get();
+                document = connect(scoreSemesterUrl + user.getUserId())
+                        .cookies(cookies).get();
             } catch (IOException e) {
                 throw new RuntimeException("Schedule unService!");
             }
@@ -510,10 +569,10 @@ public class ScraperServiceImpl implements ScraperService{
             return null;
         }
         // generate GET request __VIEWSTATE and __VIEWSTATEGENERATOR
-        Connection.Response response = Jsoup.connect(url)
+        Connection.Response response = connect(url)
+                .cookies(cookies)
                 .method(Connection.Method.GET)
                 .execute();
-        Map<String, String> cookies = response.cookies();
         Document documentCookies = response.parse();
         String viewState = documentCookies.select("input[name=__VIEWSTATE]").attr("value");
         String viewStateGenerator = documentCookies.select("input[name=__VIEWSTATEGENERATOR]").attr("value");
@@ -528,7 +587,7 @@ public class ScraperServiceImpl implements ScraperService{
         }
 
         // Select the semester again to get data
-        return Jsoup.connect(url)
+        return connect(url)
                 .timeout(30000)
                 .cookies(cookies)
                 .data("__VIEWSTATE", viewState)

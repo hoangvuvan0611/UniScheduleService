@@ -4,7 +4,9 @@ import com.service.unischeduleservice.dto.resposes.news.NewsUniResponseDTO;
 import com.service.unischeduleservice.exception.ResourceNotFoundException;
 import com.service.unischeduleservice.model.NewsModel;
 import com.service.unischeduleservice.constant.enums.FacultyEnum;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
+import org.jsoup.Connection;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -13,9 +15,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 
 @Slf4j
 @Service
@@ -139,33 +139,59 @@ public class NewsServiceImpl implements NewsService {
         return document;
     }
 
+    @SneakyThrows
     private List<NewsModel> getUniversityNewsList() {
         Document document = getDocument(homeUrl);
-        if(document.getElementById("ctl00_ContentPlaceHolder1_ctl00_tbViTri2") == null){
+        if(document.getElementById("ctl00_ContentPlaceHolder1_ctl00_lblquenmk").text().equals("XÁC THỰC ĐĂNG NHẬP WEBSITE ĐĂNG KÝ MÔN HỌC")) {
+
+            // Get page contain captcha and form for submit
+            Connection.Response initialResponse = Jsoup.connect(homeUrl)
+                    .ignoreContentType(true)
+                    .method(Connection.Method.GET)
+                    .execute();
+
+            // Read captcha
+            Document documentCaptcha = initialResponse.parse();
+            String captcha = documentCaptcha.getElementById("ctl00_ContentPlaceHolder1_ctl00_lblCapcha").text();
+
+            // Lấy các trường ẩn
+            String eventArgument = documentCaptcha.select("input[name=__EVENTARGUMENT]").val();
+            String eventTarget = documentCaptcha.select("input[name=__EVENTTARGET]").val();
+            String viewState = documentCaptcha.select("input[name=__VIEWSTATE]").attr("value");
+            String viewStateGenerator = documentCaptcha.select("input[name=__VIEWSTATEGENERATOR]").attr("value");
+
+            // Bước 2: Gửi mã captcha cùng với form mà không tải lại trang
+            Connection.Response formResponse = Jsoup.connect(homeUrl)
+                    .data("ctl00$ContentPlaceHolder1$ctl00$txtCaptcha", captcha) // Tên trường input của captcha, cần thay đổi nếu khác
+                    .data("__VIEWSTATE", viewState)
+                    .data("__EVENTTARGET", eventTarget) // Có thể để trống nếu không cần
+                    .data("__EVENTARGUMENT", eventArgument)
+                    .data("__VIEWSTATEGENERATOR", viewStateGenerator)
+                    .data("ctl00$ContentPlaceHolder1$ctl00$btnXacNhan", "Vào website")
+                    .method(Connection.Method.POST)
+                    .execute();
+
+            document = formResponse.parse();
+        } else if(document.getElementById("ctl00_ContentPlaceHolder1_ctl00_tbViTri2") == null){
             throw new ResourceNotFoundException("Not found data news!");
         }
 
+
         List<NewsModel> newsModelList = new ArrayList<>();
         Elements elementsTable = document.getElementById(
-                "ctl00_ContentPlaceHolder1_ctl00_tbViTri2").firstElementChild().getAllElements();
+                "ctl00_ContentPlaceHolder1_ctl00_tbViTri2").firstElementChild().children();
 
-        for (Element elementTd: elementsTable) {
-            if(elementTd.hasClass("TextTitle")) {
-                elementTd.child(0);
-                String title = elementTd.child(0).text().trim();
-                elementTd.getElementsByClass("NgayTitle");
-                String date = elementTd.getElementsByClass("NgayTitle").text();
-                elementTd.attr("href");
-                String url = elementTd.attr("href");
+        System.out.println(elementsTable.size());
+        for (int i=0; i<elementsTable.size()-2; i++) {
+            if(i==1 || i==2) continue;
 
-                NewsModel newsModel = NewsModel.builder()
-                        .title(title)
-                        .url("https://daotao.vnua.edu.vn/" + url)
-                        .date(date)
-                        .build();
-                newsModelList.add(newsModel);
-
-            }
+            Element elementTd = elementsTable.get(i).firstElementChild();
+            NewsModel newsModel = NewsModel.builder()
+                    .title(elementTd.getElementsByClass("TextTitle").text())
+                    .url("https://daotao.vnua.edu.vn/" + elementTd.getElementsByClass("TextTitle").attr("href"))
+                    .date(elementTd.getElementsByClass("NgayTitle").text())
+                    .build();
+            newsModelList.add(newsModel);
         }
         return newsModelList;
     }
