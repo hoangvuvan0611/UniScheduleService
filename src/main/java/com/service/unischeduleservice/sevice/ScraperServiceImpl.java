@@ -9,6 +9,7 @@ import com.service.unischeduleservice.model.ScoreModel;
 import com.service.unischeduleservice.model.SemesterModel;
 import com.service.unischeduleservice.utils.date_time.MyDateTime;
 import com.service.unischeduleservice.dto.requests.DataAppRequestDTO;
+import com.service.unischeduleservice.utils.jsoup.ProcessCaptcha;
 import lombok.SneakyThrows;
 import org.jsoup.Connection;
 import org.jsoup.nodes.Document;
@@ -70,58 +71,23 @@ public class ScraperServiceImpl implements ScraperService{
     private String thirteenthPeriod;
 
     private final ExecutorService executorService = Executors.newVirtualThreadPerTaskExecutor();
-    private final ExecutorService executorDataCourse = Executors.newVirtualThreadPerTaskExecutor();
 
-    private Map<String, String> cookies;
-
-
-    @Override
-    public DataAppResponseDTO scrappingData(DataAppRequestDTO request) throws InterruptedException {
-        return scrappingUserTuition(request);
-    }
+    private Map<String, String> cookies = Map.of();
 
     @SneakyThrows
     @Override
     public List<String> getSemesterList() {
         Document document = connect("https://daotao.vnua.edu.vn/Default.aspx?page=thoikhoabieu").get();
 
-        if(document.getElementById("ctl00_ContentPlaceHolder1_ctl00_lblquenmk").text().equals("XÁC THỰC ĐĂNG NHẬP WEBSITE ĐĂNG KÝ MÔN HỌC")) {
-
-            // Get page contain captcha and form for submit
-            Connection.Response initialResponse;
-            initialResponse = connect("https://daotao.vnua.edu.vn/Default.aspx?page=thoikhoabieu")
-                    .ignoreContentType(true)
-                    .method(Connection.Method.GET)
-                    .execute();
-
-            // Read captcha
-            Document documentCaptcha = initialResponse.parse();
-            String captcha = documentCaptcha.getElementById("ctl00_ContentPlaceHolder1_ctl00_lblCapcha").text();
-
-            // Lấy các trường ẩn
-            String eventArgument = documentCaptcha.select("input[name=__EVENTARGUMENT]").val();
-            String eventTarget = documentCaptcha.select("input[name=__EVENTTARGET]").val();
-            String viewState = documentCaptcha.select("input[name=__VIEWSTATE]").attr("value");
-            String viewStateGenerator = documentCaptcha.select("input[name=__VIEWSTATEGENERATOR]").attr("value");
-
-            // Bước 2: Gửi mã captcha cùng với form mà không tải lại trang
-            Connection.Response formResponse = connect("https://daotao.vnua.edu.vn/Default.aspx?page=thoikhoabieu")
-                    .data("ctl00$ContentPlaceHolder1$ctl00$txtCaptcha", captcha) // Tên trường input của captcha, cần thay đổi nếu khác
-                    .data("__VIEWSTATE", viewState)
-                    .data("__EVENTTARGET", eventTarget) // Có thể để trống nếu không cần
-                    .data("__EVENTARGUMENT", eventArgument)
-                    .data("__VIEWSTATEGENERATOR", viewStateGenerator)
-                    .data("ctl00$ContentPlaceHolder1$ctl00$btnXacNhan", "Vào website")
-                    .method(Connection.Method.POST)
-                    .execute();
-
-            cookies = formResponse.cookies();
+        if(document.getElementById("ctl00_ContentPlaceHolder1_ctl00_lblquenmk").text()
+                .equals("XÁC THỰC ĐĂNG NHẬP WEBSITE ĐĂNG KÝ MÔN HỌC")) {
+            cookies = ProcessCaptcha.process("https://daotao.vnua.edu.vn/Default.aspx?page=thoikhoabieu");
             document = connect(allSemesterUrl)
                     .timeout(1000*45)
                     .cookies(cookies)
                     .get();
         } else {
-            document = connect(allSemesterUrl).get();
+            document = connect(allSemesterUrl).timeout(45*1000).get();
         }
 
         if(document.getElementById("ctl00_ContentPlaceHolder1_ctl00_ddlChonNHHK") == null){
@@ -136,92 +102,64 @@ public class ScraperServiceImpl implements ScraperService{
         return semesterList;
     }
 
-    private DataAppResponseDTO scrappingUserTuition(DataAppRequestDTO request) throws InterruptedException {
+    @Override
+    public DataAppResponseDTO scrappingData(DataAppRequestDTO request) throws InterruptedException {
         return getDataUser(request);
     }
 
     @SneakyThrows
     private DataAppResponseDTO getDataUser(DataAppRequestDTO request) throws InterruptedException {
-        // SchedulePage
+        // SchedulePage, get document of page to check exist of captcha
         Document document = connect("https://daotao.vnua.edu.vn/Default.aspx?page=thoikhoabieu")
                 .timeout(1000*45).get();
-
-        if(document.getElementById("ctl00_ContentPlaceHolder1_ctl00_lblquenmk").text().equals("XÁC THỰC ĐĂNG NHẬP WEBSITE ĐĂNG KÝ MÔN HỌC")) {
-
-            // Get page contain captcha and form for submit
-            Connection.Response initialResponse = connect("https://daotao.vnua.edu.vn/Default.aspx?page=thoikhoabieu")
-                    .ignoreContentType(true)
-                    .method(Connection.Method.GET)
-                    .execute();
-
-            // Read captcha
-            Document documentCaptcha = initialResponse.parse();
-            String captcha = documentCaptcha.getElementById("ctl00_ContentPlaceHolder1_ctl00_lblCapcha").text();
-
-            // Lấy các trường ẩn
-            String eventArgument = documentCaptcha.select("input[name=__EVENTARGUMENT]").val();
-            String eventTarget = documentCaptcha.select("input[name=__EVENTTARGET]").val();
-            String viewState = documentCaptcha.select("input[name=__VIEWSTATE]").attr("value");
-            String viewStateGenerator = documentCaptcha.select("input[name=__VIEWSTATEGENERATOR]").attr("value");
-
-            // Bước 2: Gửi mã captcha cùng với form mà không tải lại trang
-            Connection.Response formResponse = connect("https://daotao.vnua.edu.vn/Default.aspx?page=thoikhoabieu")
-                    .data("ctl00$ContentPlaceHolder1$ctl00$txtCaptcha", captcha) // Tên trường input của captcha, cần thay đổi nếu khác
-                    .data("__VIEWSTATE", viewState)
-                    .data("__EVENTTARGET", eventTarget) // Có thể để trống nếu không cần
-                    .data("__EVENTARGUMENT", eventArgument)
-                    .data("__VIEWSTATEGENERATOR", viewStateGenerator)
-                    .data("ctl00$ContentPlaceHolder1$ctl00$btnXacNhan", "Vào website")
-                    .method(Connection.Method.POST)
-                    .execute();
-
-            cookies = formResponse.cookies();
-            document = connect(scheduleUrl + request.getUserId())
-                    .timeout(1000*45)
-                    .cookies(cookies)
-                    .get();
-
-        } else {
-            document = connect(scheduleUrl + request.getUserId())
-                    .timeout(1000*45)
-                    .get();
+        // Case exist captcha
+        if(document.getElementById("ctl00_ContentPlaceHolder1_ctl00_lblquenmk").text()
+                .equals("XÁC THỰC ĐĂNG NHẬP WEBSITE ĐĂNG KÝ MÔN HỌC")) {
+            // Assign cookie
+            cookies = ProcessCaptcha.process("https://daotao.vnua.edu.vn/Default.aspx?page=thoikhoabieu");
+            document = connect(scheduleUrl + request.getUserId()).timeout(1000*45).cookies(cookies).get();
+        }
+        // Case not exist captcha
+        else {
+            document = connect(scheduleUrl + request.getUserId()).timeout(1000*45).get();
         }
 
         if(document.getElementById("ctl00_ContentPlaceHolder1_ctl00_lblContentMaSV") == null){
             throw new ResourceNotFoundException("Not found userId = " + request.getUserId());
         }
 
-
-        boolean isStudent = !request.getUserId().matches(".*[a-zA-Z].*");
-        DataAppResponseDTO dataAppResponseDTO;
-        dataAppResponseDTO = isStudent
-                ? getDataStudent(document, request.getSemester())
-                : getDataTeacher(document, request.getSemester());
-        return dataAppResponseDTO;
+        boolean isStudent = request.getUserId().matches(".*[a-zA-Z].*");
+        return isStudent
+                ? getDataTeacher(document, request.getSemester())
+                : getDataStudent(document, request.getSemester());
     }
 
     private DataAppResponseDTO getDataTeacher(Document document, String semester) throws InterruptedException {
-        CountDownLatch downLatch = new CountDownLatch(1);
         // Get all information of teacher
-        DataAppResponseDTO dataAppResponseDTO = new DataAppResponseDTO();
-        dataAppResponseDTO.setIsStudent("0");
         String teacherId = document.getElementById("ctl00_ContentPlaceHolder1_ctl00_lblContentMaSV").text().trim();
-        dataAppResponseDTO.setUserId(teacherId);
-        String teacherName = document
-                .getElementById("ctl00_ContentPlaceHolder1_ctl00_lblContentTenSV").text().trim();
-        dataAppResponseDTO.setUserName(teacherName);
-
-        dataAppResponseDTO.setCurrentSemester(semester);
+        String teacherName = document.getElementById("ctl00_ContentPlaceHolder1_ctl00_lblContentTenSV").text().trim();
         String dateStartSemester = document.getElementById("ctl00_ContentPlaceHolder1_ctl00_lblNote").text().trim();
-        dateStartSemester = dateStartSemester
-                .substring(dateStartSemester.lastIndexOf(")") - 10, dateStartSemester.length() - 1).trim();
+
+        DataAppResponseDTO dataAppResponseDTO = new DataAppResponseDTO();
+        dataAppResponseDTO.setUserId(teacherId);
+        dataAppResponseDTO.setIsStudent("0");
+        dataAppResponseDTO.setUserName(teacherName);
+        dataAppResponseDTO.setCurrentSemester(semester);
+        dateStartSemester = dateStartSemester.substring(
+                dateStartSemester.lastIndexOf(")") - 10, dateStartSemester.length() - 1).trim();
         dataAppResponseDTO.setDateStartSemester(dateStartSemester);
 
+        // DownLatch for virtual thread
+//        CountDownLatch downLatch = new CountDownLatch(1);
+
         // to get all data course(test, meeting)
-        executorService.submit(() -> {
-            scrapeDataCourse(dataAppResponseDTO, false, semester, dataAppResponseDTO, downLatch);
-        });
-        downLatch.await();
+//        executorService.submit(() -> {
+//            scrapeDataCourse(dataAppResponseDTO, false, semester, dataAppResponseDTO, downLatch);
+//        });
+//        downLatch.await();
+        scrapeDataCourse(dataAppResponseDTO, false, semester, dataAppResponseDTO);
+
+
         return dataAppResponseDTO;
     }
 
@@ -231,21 +169,16 @@ public class ScraperServiceImpl implements ScraperService{
         String nameAndDateOfBirth = document
                 .getElementById("ctl00_ContentPlaceHolder1_ctl00_lblContentTenSV").text().trim();
 
+        // Get all information of student
         String userName = nameAndDateOfBirth.substring(0, nameAndDateOfBirth.indexOf("-")).trim();
         String dateOfBirth = nameAndDateOfBirth.substring(nameAndDateOfBirth.indexOf(":") + 1).trim();
-        String classAndDepartmentAndSpecialized = document
-                .getElementById("ctl00_ContentPlaceHolder1_ctl00_lblContentLopSV").text().trim();
-        String classOfUser = classAndDepartmentAndSpecialized
-                .substring(0, classAndDepartmentAndSpecialized.indexOf("-")).trim();
-        String department = classAndDepartmentAndSpecialized
-                .substring(classAndDepartmentAndSpecialized.lastIndexOf(":") + 1).trim();
-        String specialized = classAndDepartmentAndSpecialized
-                .substring(classAndDepartmentAndSpecialized.indexOf(":") + 1,
-                        classAndDepartmentAndSpecialized.lastIndexOf("-")).trim();
-
+        String classAndDepartmentAndSpecialized = document.getElementById("ctl00_ContentPlaceHolder1_ctl00_lblContentLopSV").text().trim();
+        String classOfUser = classAndDepartmentAndSpecialized.substring(0, classAndDepartmentAndSpecialized.indexOf("-")).trim();
+        String department = classAndDepartmentAndSpecialized.substring(classAndDepartmentAndSpecialized.lastIndexOf(":") + 1).trim();
+        String specialized = classAndDepartmentAndSpecialized.substring(
+                classAndDepartmentAndSpecialized.indexOf(":") + 1, classAndDepartmentAndSpecialized.lastIndexOf("-")).trim();
         String dateStartSemester = document.getElementById("ctl00_ContentPlaceHolder1_ctl00_lblNote").text().trim();
-        dateStartSemester = dateStartSemester
-                .substring(dateStartSemester.lastIndexOf(")") - 10, dateStartSemester.length() - 1).trim();
+        dateStartSemester = dateStartSemester.substring(dateStartSemester.lastIndexOf(")") - 10, dateStartSemester.length() - 1).trim();
 
         DataAppResponseDTO dataAppResponseDTO = DataAppResponseDTO.builder()
                 .userId(userId)
@@ -259,32 +192,29 @@ public class ScraperServiceImpl implements ScraperService{
                 .isStudent("1")
                 .build();
 
-        CountDownLatch downLatch = new CountDownLatch(4);
-
-        // Schedule Page, get all data meeting
-        executorService.submit(() -> {
-            scrapeDataCourse(dataAppResponseDTO, true, semester, dataAppResponseDTO, downLatch);
-            System.out.println("course");
-        });
+        CountDownLatch downLatch = new CountDownLatch(3);
 
         // Tuition page, get tuition data of student
         executorService.submit(() -> {
             scrapeDataTuition(dataAppResponseDTO, semester, downLatch);
-            System.out.println("tuition");
         });
 
         // Score page, get score data of student
         executorService.submit(() -> {
             scrapeDataScore(dataAppResponseDTO, downLatch);
-            System.out.println("score");
         });
 
         executorService.submit(() -> {
             getDataSemesterScore(dataAppResponseDTO, dataAppResponseDTO, downLatch);
-            System.out.println("Semester Score");
         });
+
+        // Schedule Page, get all data meeting
+//        executorService.submit(() -> {
+//            scrapeDataCourse(dataAppResponseDTO, true, semester, dataAppResponseDTO, downLatch);
+//        });
+        scrapeDataCourse(dataAppResponseDTO, true, semester, dataAppResponseDTO);
+
         downLatch.await();
-        System.out.println("main");
         return dataAppResponseDTO;
     }
 
@@ -351,8 +281,7 @@ public class ScraperServiceImpl implements ScraperService{
     }
 
     @SneakyThrows
-    void scrapeDataCourse(DataAppResponseDTO user, boolean isStudent, String semester, DataAppResponseDTO dataAppResponseDTO, CountDownLatch downLatch){
-
+    void scrapeDataCourse(DataAppResponseDTO user, boolean isStudent, String semester, DataAppResponseDTO dataAppResponseDTO){
         try {
             List<CourseModel> courseModelList = new ArrayList<>();
 
@@ -499,8 +428,10 @@ public class ScraperServiceImpl implements ScraperService{
                 }
             }
             dataAppResponseDTO.setCourseModelList(courseModelList);
+        } catch (Exception e) {
+            e.printStackTrace();  // Hoặc xử lý lỗi một cách thích hợp
         } finally {
-            downLatch.countDown();
+//            downLatch.countDown();
         }
     }
 

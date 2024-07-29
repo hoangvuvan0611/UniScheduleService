@@ -4,9 +4,9 @@ import com.service.unischeduleservice.dto.resposes.news.NewsUniResponseDTO;
 import com.service.unischeduleservice.exception.ResourceNotFoundException;
 import com.service.unischeduleservice.model.NewsModel;
 import com.service.unischeduleservice.constant.enums.FacultyEnum;
+import com.service.unischeduleservice.utils.jsoup.ProcessCaptcha;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
-import org.jsoup.Connection;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -16,6 +16,8 @@ import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.util.*;
+
+import static org.jsoup.Jsoup.connect;
 
 @Slf4j
 @Service
@@ -142,46 +144,18 @@ public class NewsServiceImpl implements NewsService {
     @SneakyThrows
     private List<NewsModel> getUniversityNewsList() {
         Document document = getDocument(homeUrl);
-        if(document.getElementById("ctl00_ContentPlaceHolder1_ctl00_lblquenmk").text().equals("XÁC THỰC ĐĂNG NHẬP WEBSITE ĐĂNG KÝ MÔN HỌC")) {
-
-            // Get page contain captcha and form for submit
-            Connection.Response initialResponse = Jsoup.connect(homeUrl)
-                    .ignoreContentType(true)
-                    .method(Connection.Method.GET)
-                    .execute();
-
-            // Read captcha
-            Document documentCaptcha = initialResponse.parse();
-            String captcha = documentCaptcha.getElementById("ctl00_ContentPlaceHolder1_ctl00_lblCapcha").text();
-
-            // Lấy các trường ẩn
-            String eventArgument = documentCaptcha.select("input[name=__EVENTARGUMENT]").val();
-            String eventTarget = documentCaptcha.select("input[name=__EVENTTARGET]").val();
-            String viewState = documentCaptcha.select("input[name=__VIEWSTATE]").attr("value");
-            String viewStateGenerator = documentCaptcha.select("input[name=__VIEWSTATEGENERATOR]").attr("value");
-
-            // Bước 2: Gửi mã captcha cùng với form mà không tải lại trang
-            Connection.Response formResponse = Jsoup.connect(homeUrl)
-                    .data("ctl00$ContentPlaceHolder1$ctl00$txtCaptcha", captcha) // Tên trường input của captcha, cần thay đổi nếu khác
-                    .data("__VIEWSTATE", viewState)
-                    .data("__EVENTTARGET", eventTarget) // Có thể để trống nếu không cần
-                    .data("__EVENTARGUMENT", eventArgument)
-                    .data("__VIEWSTATEGENERATOR", viewStateGenerator)
-                    .data("ctl00$ContentPlaceHolder1$ctl00$btnXacNhan", "Vào website")
-                    .method(Connection.Method.POST)
-                    .execute();
-
-            document = formResponse.parse();
+        if(document.getElementById("ctl00_ContentPlaceHolder1_ctl00_lblquenmk").text()
+                .equals("XÁC THỰC ĐĂNG NHẬP WEBSITE ĐĂNG KÝ MÔN HỌC")) {
+            document = connect(homeUrl)
+                    .timeout(1000*45)
+                    .cookies(ProcessCaptcha.process(homeUrl))
+                    .get();
         } else if(document.getElementById("ctl00_ContentPlaceHolder1_ctl00_tbViTri2") == null){
             throw new ResourceNotFoundException("Not found data news!");
         }
 
-
         List<NewsModel> newsModelList = new ArrayList<>();
-        Elements elementsTable = document.getElementById(
-                "ctl00_ContentPlaceHolder1_ctl00_tbViTri2").firstElementChild().children();
-
-        System.out.println(elementsTable.size());
+        Elements elementsTable = document.getElementById("ctl00_ContentPlaceHolder1_ctl00_tbViTri2").firstElementChild().children();
         for (int i=0; i<elementsTable.size()-2; i++) {
             if(i==1 || i==2) continue;
 
